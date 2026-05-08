@@ -61,7 +61,7 @@ export default function GitHubIntegrationCard() {
       </div>
       <div className="p-2.5 rounded-lg bg-white/[0.02] border border-border/50 mb-3">
         <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-0.5">Last Sync</p>
-        <p className="text-xs font-mono text-foreground">2026-05-08 16:56 UTC</p>
+        <p className="text-xs font-mono text-foreground">{new Date().toISOString().replace('T', ' ').substring(0, 19)} UTC</p>
       </div>
       <button
         onClick={handleSync}

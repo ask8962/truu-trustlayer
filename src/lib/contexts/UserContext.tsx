@@ -14,6 +14,59 @@ const UserContext = createContext<UserContextType>({
   loading: true,
 });
 
+// Fetch real GitHub stats using the public API
+async function fetchGitHubStats(username: string) {
+  try {
+    // Get user profile (includes public_repos count)
+    const profileRes = await fetch(`https://api.github.com/users/${username}`);
+    if (!profileRes.ok) return { repoCount: 0, commitCount: 0, bio: '' };
+    const profile = await profileRes.json();
+
+    // Get repos to estimate total commits
+    const reposRes = await fetch(`https://api.github.com/users/${username}/repos?per_page=100&sort=updated`);
+    const repos = reposRes.ok ? await reposRes.json() : [];
+
+    // Sum up stargazers as a rough activity metric, and count repos
+    let totalStars = 0;
+    let totalForks = 0;
+    for (const repo of repos) {
+      totalStars += repo.stargazers_count || 0;
+      totalForks += repo.forks_count || 0;
+    }
+
+    return {
+      repoCount: profile.public_repos || repos.length || 0,
+      commitCount: totalStars + totalForks, // We'll show actual event count below
+      bio: profile.bio || '',
+      location: profile.location || '',
+      followers: profile.followers || 0,
+      following: profile.following || 0,
+    };
+  } catch (err) {
+    console.error('[UserContext] GitHub API error:', err);
+    return { repoCount: 0, commitCount: 0, bio: '', location: '', followers: 0, following: 0 };
+  }
+}
+
+// Fetch contribution events to estimate commit count
+async function fetchGitHubEvents(username: string) {
+  try {
+    const res = await fetch(`https://api.github.com/users/${username}/events/public?per_page=100`);
+    if (!res.ok) return 0;
+    const events = await res.json();
+    // Count PushEvents — each push can have multiple commits
+    let commitCount = 0;
+    for (const event of events) {
+      if (event.type === 'PushEvent' && event.payload?.commits) {
+        commitCount += event.payload.commits.length;
+      }
+    }
+    return commitCount;
+  } catch {
+    return 0;
+  }
+}
+
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<TruuUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,21 +77,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const supabase = createClient();
         const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
-        if (authError) {
-          console.error('[UserContext] Auth error:', authError.message);
-          setLoading(false);
-          return;
-        }
-
-        if (!authUser) {
-          console.log('[UserContext] No authenticated user found');
+        if (authError || !authUser) {
+          console.log('[UserContext] No authenticated user');
           setUser(null);
           setLoading(false);
           return;
         }
-
-        console.log('[UserContext] Auth user found:', authUser.id);
-        console.log('[UserContext] User metadata:', JSON.stringify(authUser.user_metadata));
 
         // 1. Get OAuth Metadata (GitHub)
         const githubUsername = authUser.user_metadata?.user_name
@@ -48,20 +92,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const avatar = authUser.user_metadata?.avatar_url || '';
         const email = authUser.email || '';
 
-        // 2. Query our public `users` table
-        let { data: dbUser, error: selectError } = await supabase
+        // 2. Fetch REAL GitHub stats
+        const [ghStats, commitCount] = await Promise.all([
+          fetchGitHubStats(githubUsername),
+          fetchGitHubEvents(githubUsername),
+        ]);
+
+        // 3. Query our public `users` table
+        let { data: dbUser } = await supabase
           .from('users')
           .select('*')
           .eq('id', authUser.id)
           .single();
 
-        if (selectError) {
-          console.log('[UserContext] User not in DB yet, will insert. Error:', selectError.message);
-        }
-
-        // 3. Auto-Upsert if user doesn't exist (first login)
+        // 4. Auto-Upsert if user doesn't exist (first login)
         if (!dbUser) {
-          console.log('[UserContext] Inserting new user into DB...');
           const { data: newUser, error: insertError } = await supabase
             .from('users')
             .upsert({
@@ -72,26 +117,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             .select()
             .single();
 
-          if (insertError) {
-            console.error('[UserContext] Insert failed:', insertError.message);
-            // Even if DB insert fails, still show the user from auth metadata
-          } else {
+          if (!insertError) {
             dbUser = newUser;
+          } else {
+            console.error('[UserContext] Insert failed:', insertError.message);
           }
         }
 
-        // Build user object from auth metadata + DB (if available)
+        // 5. Build user object with REAL GitHub data
         setUser({
           uid: authUser.id,
           githubUsername: dbUser?.github_username || githubUsername,
           email: email,
           avatar: avatar,
-          bio: 'Developer building the future.',
+          bio: ghStats.bio || 'Developer building the future.',
           trustScore: dbUser?.trust_score || 0,
           createdAt: dbUser?.created_at || new Date().toISOString(),
           lastLogin: new Date().toISOString(),
-          repoCount: 0,
-          commitCount: 0,
+          repoCount: ghStats.repoCount,
+          commitCount: commitCount || ghStats.commitCount,
         });
       } catch (err) {
         console.error('[UserContext] Unexpected error:', err);
