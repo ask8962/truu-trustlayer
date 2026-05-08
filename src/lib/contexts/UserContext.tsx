@@ -51,10 +51,22 @@ async function fetchGitHubStats(username: string) {
 // Fetch contribution events to estimate commit count
 async function fetchGitHubEvents(username: string) {
   try {
-    const res = await fetch(`https://api.github.com/users/${username}/events/public?per_page=100`);
-    if (!res.ok) return 0;
-    const events = await res.json();
-    // Count PushEvents — each push can have multiple commits
+    // The search/commits API gives an accurate lifetime commit count
+    const res = await fetch(`https://api.github.com/search/commits?q=author:${username}`, {
+      headers: { 'Accept': 'application/vnd.github.cloak-preview' }
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      if (data.total_count !== undefined) {
+        return data.total_count;
+      }
+    }
+
+    // Fallback: Count PushEvents from public events if search fails (e.g. rate limit)
+    const fallbackRes = await fetch(`https://api.github.com/users/${username}/events/public?per_page=100`);
+    if (!fallbackRes.ok) return 0;
+    const events = await fallbackRes.json();
     let commitCount = 0;
     for (const event of events) {
       if (event.type === 'PushEvent' && event.payload?.commits) {

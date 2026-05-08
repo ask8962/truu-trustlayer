@@ -141,7 +141,7 @@ export default function PassportHeader() {
             <div className="grid grid-cols-2 gap-2">
               {[
                 { label: 'Repos', value: user?.repoCount },
-                { label: 'Commits', value: `${(user?.commitCount / 1000)?.toFixed(1)}k` },
+                { label: 'Commits', value: user?.commitCount >= 1000 ? `${(user?.commitCount / 1000)?.toFixed(1)}k` : user?.commitCount },
               ]?.map(({ label, value }) => (
                 <div key={`header-stat-${label}`} className="p-2 rounded-lg bg-white/[0.03] border border-border/50">
                   <p className="text-sm font-black font-mono text-foreground">{value}</p>
