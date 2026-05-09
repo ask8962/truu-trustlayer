@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import {
   Globe as GlobeIcon, Shield, CheckCircle2, MapPin, Calendar
 } from 'lucide-react';
-import { useUser } from '@/lib/contexts/UserContext';
+import { useProfile } from '../ProfileContext';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 
@@ -26,7 +26,7 @@ const TwitterIcon = ({ size = 16, className = '' }: { size?: number; className?:
 // Backend integration point — replace MOCK_USER with Firestore getDoc on users/{username}
 
 export default function PassportHeader() {
-  const { user } = useUser();
+  const { profileUser: user } = useProfile();
   const scorePercent = (user?.trustScore / 1000) * 100;
 
   return (

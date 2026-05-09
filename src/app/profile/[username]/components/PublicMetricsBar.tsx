@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Award, GitCommit, BookOpen, Zap } from 'lucide-react';
-import { useUser } from '@/lib/contexts/UserContext';
+import { Award, GitCommit, BookOpen, Zap, Target, Shield, Hexagon } from 'lucide-react';
+import { useProfile } from '../ProfileContext';
 import { createClient } from '@/lib/supabase/client';
 import { SkillCredential } from '@/lib/types';
 import Icon from '@/components/ui/AppIcon';
 
 export default function PublicMetricsBar() {
-  const { user } = useUser();
+  const { profileUser: user } = useProfile();
   const [skills, setSkills] = useState<SkillCredential[]>([]);
 
   useEffect(() => {

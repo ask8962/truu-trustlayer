@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Layers } from 'lucide-react';
-import { useUser } from '@/lib/contexts/UserContext';
+import { useProfile } from '../ProfileContext';
 import { createClient } from '@/lib/supabase/client';
 import { SkillCredential } from '@/lib/types';
 
@@ -25,7 +25,7 @@ const TIER_SIZE: Record<string, string> = {
 };
 
 export default function TechStackSection() {
-  const { user } = useUser();
+  const { profileUser: user } = useProfile();
   const [skills, setSkills] = useState<SkillCredential[]>([]);
 
   useEffect(() => {

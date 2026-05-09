@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useUser } from '@/lib/contexts/UserContext';
+import { useProfile } from '../ProfileContext';
 import { createClient } from '@/lib/supabase/client';
 import { SkillCredential } from '@/lib/types';
 import SkillCard from '@/components/SkillCard';
@@ -11,7 +11,7 @@ const CATEGORIES = ['All', 'Language', 'Framework', 'Architecture', 'Database', 
 type Category = typeof CATEGORIES[number];
 
 export default function CredentialGrid() {
-  const { user } = useUser();
+  const { profileUser: user } = useProfile();
   const [category, setCategory] = useState<Category>('All');
   const [skills, setSkills] = useState<SkillCredential[]>([]);
 
