@@ -33,7 +33,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
   const { data: userData, error } = await supabase
     .from('users')
     .select('*')
-    .ilike('user_name', username)
+    .ilike('github_username', username)
     .single();
 
   if (error || !userData) {
@@ -55,9 +55,13 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
 
   const profileUser: TruuUser = {
     uid: userData.id,
-    githubUsername: userData.user_name || username,
-    avatarUrl: userData.avatar_url || `https://github.com/${username}.png`,
+    githubUsername: userData.github_username || username,
+    email: '',
+    avatar: `https://github.com/${username}.png`,
+    bio: '',
     trustScore: userData.trust_score || 0,
+    createdAt: userData.created_at || new Date().toISOString(),
+    lastLogin: new Date().toISOString(),
     repoCount,
     commitCount,
   };

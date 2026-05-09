@@ -18,8 +18,8 @@ export async function GET(req: NextRequest) {
     // Fetch user data
     const { data: userData } = await supabase
       .from('users')
-      .select('id, user_name, trust_score, avatar_url')
-      .ilike('user_name', username)
+      .select('id, github_username, trust_score')
+      .ilike('github_username', username)
       .single();
 
     if (!userData) {
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
       .limit(3);
 
     const trustScore = userData.trust_score || 0;
-    const avatarUrl = userData.avatar_url || `https://github.com/${username}.png`;
+    const avatarUrl = `https://github.com/${username}.png`;
     const topSkills = skills || [];
 
     // Font setup (optional, using default sans for now)
