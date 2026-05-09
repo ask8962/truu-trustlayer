@@ -2,36 +2,7 @@
 
 import React, { useState } from 'react';
 import { GitCommit } from 'lucide-react';
-
-// Generate deterministic heatmap data — 52 weeks × 7 days
-function generateHeatmapData() {
-  const data: { week: number; day: number; value: number; date: string }[] = [];
-  const baseDate = new Date('2025-05-08');
-
-  for (let week = 0; week < 52; week++) {
-    for (let day = 0; day < 7; day++) {
-      const d = new Date(baseDate);
-      d.setDate(baseDate.getDate() + week * 7 + day);
-
-      // Deterministic value based on position — no Math.random()
-      const seed = (week * 7 + day);
-      const isWeekend = day === 0 || day === 6;
-      const baseVal = isWeekend ? (seed % 3) : (seed % 8);
-      const spike = (week === 12 || week === 28 || week === 44) && day === 4 ? 4 : 0;
-      const value = Math.min(baseVal + spike, 9);
-
-      data.push({
-        week,
-        day,
-        value,
-        date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
-      });
-    }
-  }
-  return data;
-}
-
-const HEATMAP_DATA = generateHeatmapData();
+import { useProfile } from '../ProfileContext';
 
 function getCellColor(value: number): string {
   if (value === 0) return 'rgba(255,255,255,0.04)';
@@ -46,9 +17,12 @@ const MONTH_LABELS = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'J
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export default function ContributionHeatmap() {
+  const { heatmapData } = useProfile();
   const [tooltip, setTooltip] = useState<{ date: string; value: number; x: number; y: number } | null>(null);
 
-  const totalCommits = HEATMAP_DATA.reduce((acc, d) => acc + d.value, 0);
+  // If no data, render an empty grid gracefully
+  const dataToUse = heatmapData && heatmapData.length > 0 ? heatmapData : [];
+  const totalCommits = dataToUse.reduce((acc, d) => acc + d.value, 0);
 
   return (
     <div>
@@ -85,7 +59,7 @@ export default function ContributionHeatmap() {
             {Array.from({ length: 52 }, (_, week) => (
               <div key={`heatmap-week-${week}`} className="flex flex-col gap-1">
                 {Array.from({ length: 7 }, (_, day) => {
-                  const cell = HEATMAP_DATA.find(d => d.week === week && d.day === day);
+                  const cell = dataToUse.find(d => d.week === week && d.day === day);
                   if (!cell) return null;
                   return (
                     <div

@@ -66,8 +66,58 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
     commitCount,
   };
 
+  // Fetch real heatmap data
+  let heatmapData: any[] = [];
+  try {
+    const token = process.env.GITHUB_TOKEN;
+    if (token) {
+      const query = `
+        query {
+          user(login: "${username}") {
+            contributionsCollection {
+              contributionCalendar {
+                weeks {
+                  contributionDays {
+                    contributionCount
+                    date
+                    weekday
+                  }
+                }
+              }
+            }
+          }
+        }
+      `;
+      const res = await fetch('https://api.github.com/graphql', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+        next: { revalidate: 3600 }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const weeks = json.data?.user?.contributionsCollection?.contributionCalendar?.weeks || [];
+        weeks.forEach((w: any, weekIdx: number) => {
+          w.contributionDays.forEach((day: any) => {
+            heatmapData.push({
+              week: weekIdx,
+              day: day.weekday,
+              value: day.contributionCount,
+              date: day.date
+            });
+          });
+        });
+      }
+    }
+  } catch (e) {
+    console.error('Failed to fetch heatmap data', e);
+  }
+
   return (
-    <ProfileProvider profileUser={profileUser}>
+    <ProfileProvider profileUser={profileUser} heatmapData={heatmapData}>
       <PassportView />
     </ProfileProvider>
   );
