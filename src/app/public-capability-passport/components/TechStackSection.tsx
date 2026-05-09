@@ -42,10 +42,10 @@ export default function TechStackSection() {
           userId: s.user_id as string,
           skillName: s.skill_name as string,
           proficiency: s.proficiency_level as SkillCredential['proficiency'],
-          confidence: 0,
+          confidence: (s.confidence as number) || 0,
           proofHash: (s.proof_jwt as string) || '',
           verifiedAt: s.created_at as string,
-          category: '',
+          category: (s.category as string) || 'Language',
         })));
       }
     };

@@ -5,7 +5,10 @@ const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 // ── Step 1: Fetch repos + languages from GitHub ─────────────────────
 async function fetchGitHubData(username: string) {
-  const headers: HeadersInit = { Accept: 'application/vnd.github+json' };
+  const headers: HeadersInit = {
+  Accept: 'application/vnd.github+json',
+  Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+};
 
   // Fetch repos (up to 100, sorted by recent push)
   const reposRes = await fetch(
@@ -149,10 +152,20 @@ Return ONLY the JSON array, nothing else.`;
 export async function POST() {
   try {
     const supabase = await createClient();
-    const {
+    let {
       data: { user },
     } = await supabase.auth.getUser();
 
+    // If no authenticated user (e.g., dev testing), allow a dev user via env var
+    if (!user && process.env.DEV_USER_ID) {
+      // Construct a minimal user object compatible with the rest of the code
+      user = {
+        id: process.env.DEV_USER_ID,
+        user_metadata: {
+          user_name: process.env.DEV_GITHUB_USERNAME || 'unknown',
+        },
+      } as any;
+    }
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
