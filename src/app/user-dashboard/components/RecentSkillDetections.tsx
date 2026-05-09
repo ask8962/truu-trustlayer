@@ -60,7 +60,7 @@ export default function RecentSkillDetections() {
           </span>
         </div>
         <Link
-          href="/public-capability-passport"
+          href="/profile/[username]"
           className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground hover:text-primary transition-colors"
         >
           View Passport
@@ -75,10 +75,9 @@ export default function RecentSkillDetections() {
           <button
             key={`tier-filter-${tier}`}
             onClick={() => setFilter(tier)}
-            className={`flex-shrink-0 text-[10px] font-mono px-2.5 py-1 rounded-full border transition-all duration-150 ${
-              filter === tier
-                ? 'bg-primary/15 border-primary/40 text-primary' :'border-border text-muted-foreground hover:text-foreground hover:border-border-bright'
-            }`}
+            className={`flex-shrink-0 text-[10px] font-mono px-2.5 py-1 rounded-full border transition-all duration-150 ${filter === tier
+                ? 'bg-primary/15 border-primary/40 text-primary' : 'border-border text-muted-foreground hover:text-foreground hover:border-border-bright'
+              }`}
           >
             {tier}
           </button>
