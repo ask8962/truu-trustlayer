@@ -147,9 +147,17 @@ export default function DashboardSidebar({ collapsed, onToggle, mobileOpen, onMo
         {!collapsed && (
           <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground px-3 mb-2">Navigation</p>
         )}
-        {NAV_ITEMS.map((item) => (
-          <NavItem key={item.id} item={item} collapsed={collapsed} active={pathname === item.href && item.href === '/user-dashboard'} />
-        ))}
+        {NAV_ITEMS.map((item) => {
+          const href = item.href.replace('[username]', user?.githubUsername || 'unknown');
+          return (
+            <NavItem 
+              key={item.id} 
+              item={{ ...item, href }} 
+              collapsed={collapsed} 
+              active={pathname === href} 
+            />
+          );
+        })}
       </nav>
 
       {/* GitHub sync status */}
