@@ -1,54 +1,102 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cpu, Play, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { generateMiningSkills } from '@/lib/mockData';
+import { useUser } from '@/lib/contexts/UserContext';
 import { createClient } from '@/lib/supabase/client';
 
-type MiningState = 'idle' | 'running' | 'complete';
+type MiningState = 'idle' | 'running' | 'complete' | 'error';
 
 export default function AmbientMinerCard() {
+  const { user } = useUser();
   const [miningState, setMiningState] = useState<MiningState>('idle');
   const [progress, setProgress] = useState(0);
   const [detectedCount, setDetectedCount] = useState(0);
+  const [totalRuns, setTotalRuns] = useState(0);
+  const [skillsFound, setSkillsFound] = useState(0);
+  const [liveSkills, setLiveSkills] = useState<string[]>([]);
+
+  // Fetch stats from Supabase on mount
+  useEffect(() => {
+    if (!user) return;
+    const fetchStats = async () => {
+      const supabase = createClient();
+      // Count mining activities (total runs)
+      const { data: activities } = await supabase
+        .from('activities')
+        .select('id')
+        .eq('user_id', user.uid)
+        .eq('type', 'mining');
+      setTotalRuns(activities?.length || 0);
+
+      // Count skills
+      const { data: skills } = await supabase
+        .from('skills')
+        .select('id')
+        .eq('user_id', user.uid);
+      setSkillsFound(skills?.length || 0);
+    };
+    fetchStats();
+  }, [user]);
 
   const runMiner = async () => {
     setMiningState('running');
     setProgress(0);
+    setLiveSkills([]);
 
-    // Simulate progress
-    const steps = [15, 32, 48, 65, 78, 91, 100];
-    for (let i = 0; i < steps.length; i++) {
-      await new Promise(r => setTimeout(r, 400));
-      setProgress(steps[i]);
-    }
-
-    const detected = generateMiningSkills();
-    setDetectedCount(detected.length);
-
-    // Backend integration point — save mining activity to Supabase
-    try {
-      const supabase = createClient();
-      await supabase.from('activities').insert({
-        user_id: 'user-dev-001', // Replace with real UUID when auth is connected
-        type: 'mining',
-        message: `Ambient miner completed — ${detected.length} new skill detections`,
+    // Animate progress while the API works
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) return prev; // Hold at 90% until API responds
+        return prev + Math.random() * 8;
       });
-    } catch {
-      // Supabase not configured or table missing — UI-only mode
+    }, 600);
+
+    try {
+      const res = await fetch('/api/mine', { method: 'POST' });
+      const data = await res.json();
+
+      clearInterval(progressInterval);
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Mining failed');
+      }
+
+      // Animate to 100%
+      setProgress(100);
+      setDetectedCount(data.skills_detected);
+      setSkillsFound(data.skills_detected);
+      setTotalRuns(prev => prev + 1);
+
+      // Show detected skill names in the animation
+      if (data.skills) {
+        const skillNames = data.skills.map((s: { skillName: string }) => s.skillName);
+        setLiveSkills(skillNames.slice(0, 4));
+      }
+
+      setMiningState('complete');
+      toast.success(`Mining complete — ${data.skills_detected} skills detected`, {
+        description: `Trust Score updated to ${data.trust_score}/1000`,
+      });
+
+      setTimeout(() => {
+        setMiningState('idle');
+        setProgress(0);
+        setLiveSkills([]);
+      }, 5000);
+    } catch (err) {
+      clearInterval(progressInterval);
+      setMiningState('error');
+      const message = err instanceof Error ? err.message : 'Mining failed';
+      toast.error('Mining failed', { description: message });
+
+      setTimeout(() => {
+        setMiningState('idle');
+        setProgress(0);
+      }, 3000);
     }
-
-    setMiningState('complete');
-    toast.success(`Mining complete — ${detected.length} new skill detections`, {
-      description: 'Your Trust Score has been updated.',
-    });
-
-    setTimeout(() => {
-      setMiningState('idle');
-      setProgress(0);
-    }, 4000);
   };
 
   return (
@@ -73,12 +121,15 @@ export default function AmbientMinerCard() {
         </div>
         <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-mono uppercase tracking-wider ${
           miningState === 'running' ?'bg-accent/10 border border-accent/30 text-accent'
-            : miningState === 'complete' ?'bg-green-500/10 border border-green-500/30 text-green-400' :'bg-white/5 border border-border text-muted-foreground'
+            : miningState === 'complete' ?'bg-green-500/10 border border-green-500/30 text-green-400'
+            : miningState === 'error' ?'bg-red-500/10 border border-red-500/30 text-red-400'
+            :'bg-white/5 border border-border text-muted-foreground'
         }`}>
           {miningState === 'running' && <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />}
           {miningState === 'complete' && <CheckCircle2 size={9} />}
           {miningState === 'idle' && <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />}
-          {miningState === 'idle' ? 'Ready' : miningState === 'running' ? 'Mining' : 'Done'}
+          {miningState === 'error' && <span className="w-1.5 h-1.5 rounded-full bg-red-400" />}
+          {miningState === 'idle' ? 'Ready' : miningState === 'running' ? 'Mining' : miningState === 'complete' ? 'Done' : 'Error'}
         </div>
       </div>
 
@@ -93,8 +144,8 @@ export default function AmbientMinerCard() {
         {miningState === 'running' && (
           <div className="w-full px-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-mono text-accent">Analyzing commits...</span>
-              <span className="text-[10px] font-mono text-accent font-bold">{progress}%</span>
+              <span className="text-[10px] font-mono text-accent">Analyzing repos with Groq AI...</span>
+              <span className="text-[10px] font-mono text-accent font-bold">{Math.round(progress)}%</span>
             </div>
             <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
               <motion.div
@@ -104,14 +155,14 @@ export default function AmbientMinerCard() {
               />
             </div>
             <div className="mt-3 flex gap-1 flex-wrap">
-              {['TypeScript', 'React', 'Node.js', 'Go'].map((lang, i) => (
+              {(liveSkills.length > 0 ? liveSkills : ['Scanning...', 'Analyzing...', 'Extracting...', 'Verifying...']).map((label, i) => (
                 <motion.span
-                  key={`mining-lang-${lang}`}
+                  key={`mining-lang-${label}`}
                   initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: progress > i * 25 ? 1 : 0.2, scale: progress > i * 25 ? 1 : 0.8 }}
+                  animate={{ opacity: progress > i * 20 ? 1 : 0.2, scale: progress > i * 20 ? 1 : 0.8 }}
                   className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-accent/15 border border-accent/30 text-accent"
                 >
-                  {lang}
+                  {label}
                 </motion.span>
               ))}
             </div>
@@ -127,13 +178,23 @@ export default function AmbientMinerCard() {
             <p className="text-xs font-mono text-green-400 font-bold">{detectedCount} skills detected</p>
           </motion.div>
         )}
+        {miningState === 'error' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center"
+          >
+            <Cpu size={24} className="text-red-400 mx-auto mb-1 opacity-60" />
+            <p className="text-[10px] font-mono text-red-400">Mining failed — check console</p>
+          </motion.div>
+        )}
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-2 mb-4">
         {[
-          { label: 'Total Runs', value: '0', color: 'text-accent' },
-          { label: 'Skills Found', value: '0', color: 'text-primary' },
+          { label: 'Total Runs', value: totalRuns.toString(), color: 'text-accent' },
+          { label: 'Skills Found', value: skillsFound.toString(), color: 'text-primary' },
         ].map(({ label, value, color }) => (
           <div key={`miner-stat-${label}`} className="p-2.5 rounded-lg bg-white/[0.02] border border-border/50 text-center">
             <p className={`text-lg font-black font-mono ${color}`}>{value}</p>
@@ -166,6 +227,9 @@ export default function AmbientMinerCard() {
             <CheckCircle2 size={14} />
             <span>Mining Complete</span>
           </>
+        )}
+        {miningState === 'error' && (
+          <span>Retry</span>
         )}
       </button>
     </div>
