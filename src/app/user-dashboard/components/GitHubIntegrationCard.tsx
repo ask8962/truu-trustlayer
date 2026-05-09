@@ -15,6 +15,8 @@ const GithubIcon = ({ size = 16, className = '' }: { size?: number; className?: 
 
 export default function GitHubIntegrationCard() {
   const { user } = useUser();
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
 
   const handleSync = () => {
     // Backend integration point — trigger GitHub re-sync, update Firestore integrations collection
@@ -61,7 +63,7 @@ export default function GitHubIntegrationCard() {
       </div>
       <div className="p-2.5 rounded-lg bg-white/[0.02] border border-border/50 mb-3">
         <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-0.5">Last Sync</p>
-        <p className="text-xs font-mono text-foreground">{new Date().toISOString().replace('T', ' ').substring(0, 19)} UTC</p>
+        <p className="text-xs font-mono text-foreground">{mounted ? `${new Date().toISOString().replace('T', ' ').substring(0, 19)} UTC` : 'Syncing...'}</p>
       </div>
       <button
         onClick={handleSync}

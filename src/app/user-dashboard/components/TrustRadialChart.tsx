@@ -4,7 +4,8 @@ import React from 'react';
 import { RadialBarChart, RadialBar, ResponsiveContainer } from 'recharts';
 
 export default function TrustRadialChart({ score }: { score: number }) {
-  const data = [{ value: (score / 1000) * 100, fill: 'url(#trustGradient)' }];
+  const safeScore = typeof score === 'number' && !isNaN(score) ? score : 0;
+  const data = [{ value: (safeScore / 1000) * 100, fill: 'url(#trustGradient)' }];
 
   return (
     <ResponsiveContainer width="100%" height="100%">
