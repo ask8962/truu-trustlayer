@@ -24,7 +24,7 @@ const NAV_ITEMS = [
   { id: 'nav-miner', icon: Cpu, label: 'Ambient Miner', href: '/user-dashboard', badge: 'Active' },
   { id: 'nav-credentials', icon: Award, label: 'Credentials', href: '/user-dashboard', badge: null },
   { id: 'nav-activity', icon: Activity, label: 'Activity', href: '/user-dashboard', badge: null },
-  { id: 'nav-passport', icon: ExternalLink, label: 'My Passport', href: '/profile/[username]', badge: null },
+  { id: 'nav-passport', icon: ExternalLink, label: 'Profile', href: '/profile/[username]', badge: null },
   { id: 'nav-settings', icon: Settings, label: 'Settings', href: '/user-dashboard', badge: null },
 ];
 
@@ -41,7 +41,7 @@ function NavItem({ item, collapsed, active }: { item: typeof NAV_ITEMS[0]; colla
     <Link href={item.href} title={collapsed ? item.label : undefined}>
       <div
         className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative ${active
-            ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+          ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
           }`}
       >
         {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full" />}
