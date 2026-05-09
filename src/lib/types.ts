@@ -1,14 +1,22 @@
 export interface TruuUser {
   uid: string;
   githubUsername: string;
+  fullName?: string;
   email: string;
   avatar: string;
   bio: string;
+  location?: string;
   trustScore: number;
   createdAt: string;
   lastLogin: string;
   repoCount: number;
   commitCount: number;
+  socials?: {
+    website?: string;
+    twitter?: string;
+    linkedin?: string;
+    leetcode?: string;
+  };
 }
 
 export interface SkillCredential {

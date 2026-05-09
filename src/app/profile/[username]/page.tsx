@@ -53,29 +53,30 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
     console.error('Failed to fetch github stats', e);
   }
 
-  const profileUser: TruuUser = {
-    uid: userData.id,
-    githubUsername: userData.github_username || username,
-    email: '',
-    avatar: `https://github.com/${username}.png`,
-    bio: '',
-    trustScore: userData.trust_score || 0,
-    createdAt: userData.created_at || new Date().toISOString(),
-    lastLogin: new Date().toISOString(),
-    repoCount,
-    commitCount,
-  };
-
-  // Fetch real heatmap data
+  // Fetch real heatmap data and profile details from GitHub GraphQL
   let heatmapData: any[] = [];
+  let ghProfile: any = null;
   try {
     const token = process.env.GITHUB_TOKEN;
     if (token) {
       const query = `
         query {
           user(login: "${username}") {
+            name
+            bio
+            location
+            websiteUrl
+            twitterUsername
+            createdAt
+            socialAccounts(first: 10) {
+              nodes {
+                provider
+                url
+              }
+            }
             contributionsCollection {
               contributionCalendar {
+                totalContributions
                 weeks {
                   contributionDays {
                     contributionCount
@@ -99,22 +100,58 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
       });
       if (res.ok) {
         const json = await res.json();
-        const weeks = json.data?.user?.contributionsCollection?.contributionCalendar?.weeks || [];
-        weeks.forEach((w: any, weekIdx: number) => {
-          w.contributionDays.forEach((day: any) => {
-            heatmapData.push({
-              week: weekIdx,
-              day: day.weekday,
-              value: day.contributionCount,
-              date: day.date
+        const user = json.data?.user;
+        if (user) {
+          ghProfile = user;
+          const weeks = user.contributionsCollection?.contributionCalendar?.weeks || [];
+          weeks.forEach((w: any, weekIdx: number) => {
+            w.contributionDays.forEach((day: any) => {
+              heatmapData.push({
+                week: weekIdx,
+                day: day.weekday,
+                value: day.contributionCount,
+                date: day.date
+              });
             });
           });
-        });
+          if (user.contributionsCollection?.contributionCalendar?.totalContributions) {
+            commitCount = user.contributionsCollection.contributionCalendar.totalContributions;
+          }
+        }
       }
     }
   } catch (e) {
-    console.error('Failed to fetch heatmap data', e);
+    console.error('Failed to fetch github data', e);
   }
+
+  // Parse social links
+  const socials: any = {};
+  if (ghProfile) {
+    socials.website = ghProfile.websiteUrl || '';
+    socials.twitter = ghProfile.twitterUsername ? `https://twitter.com/${ghProfile.twitterUsername}` : '';
+    
+    ghProfile.socialAccounts?.nodes?.forEach((node: any) => {
+      const url = node.url.toLowerCase();
+      if (url.includes('linkedin.com')) socials.linkedin = node.url;
+      if (url.includes('leetcode.com')) socials.leetcode = node.url;
+    });
+  }
+
+  const profileUser: TruuUser = {
+    uid: userData.id,
+    githubUsername: userData.github_username || username,
+    fullName: ghProfile?.name || userData.github_username || username,
+    email: '',
+    avatar: `https://github.com/${username}.png`,
+    bio: ghProfile?.bio || '',
+    location: ghProfile?.location || 'Unknown',
+    trustScore: userData.trust_score || 0,
+    createdAt: ghProfile?.createdAt || userData.created_at || new Date().toISOString(),
+    lastLogin: new Date().toISOString(),
+    repoCount,
+    commitCount,
+    socials,
+  };
 
   return (
     <ProfileProvider profileUser={profileUser} heatmapData={heatmapData}>

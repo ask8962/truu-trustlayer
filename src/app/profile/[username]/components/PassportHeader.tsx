@@ -23,6 +23,18 @@ const TwitterIcon = ({ size = 16, className = '' }: { size?: number; className?:
   </svg>
 );
 
+const LinkedinIcon = ({ size = 16, className = '' }: { size?: number; className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+  </svg>
+);
+
+const LeetcodeIcon = ({ size = 16, className = '' }: { size?: number; className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M13.483 0a1.374 1.374 0 0 0-.961.414l-9.774 9.774a1.358 1.358 0 0 0 0 1.923l9.11 9.11a1.358 1.358 0 0 0 1.923 0L23.565 11.45a1.358 1.358 0 0 0 0-1.923L13.483 0zm-1.077 4.793l3.665 3.665-3.665 3.665-3.665-3.665 3.665-3.665zM4.793 11.077l3.665 3.665-3.665 3.665-3.665-3.665 3.665-3.665z"/>
+  </svg>
+);
+
 // Backend integration point — replace MOCK_USER with Firestore getDoc on users/{username}
 
 export default function PassportHeader() {
@@ -70,7 +82,8 @@ export default function PassportHeader() {
         {/* Identity info */}
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-3 mb-2">
-            <h1 className="text-2xl lg:text-3xl font-black text-foreground">{user?.githubUsername}</h1>
+            <h1 className="text-2xl lg:text-3xl font-black text-foreground">{user?.fullName}</h1>
+            <span className="text-muted-foreground font-mono text-sm opacity-50">@{user?.githubUsername}</span>
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/10 border border-accent/30">
               <Shield size={11} className="text-accent" />
               <span className="text-[10px] font-mono text-accent uppercase tracking-wider font-bold">TRUU Verified</span>
@@ -82,11 +95,11 @@ export default function PassportHeader() {
           <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground font-mono mb-5">
             <span className="flex items-center gap-1.5">
               <MapPin size={11} />
-              San Francisco, CA
+              {user?.location || 'Unknown Location'}
             </span>
             <span className="flex items-center gap-1.5">
               <Calendar size={11} />
-              Member since Nov 2025
+              Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Unknown'}
             </span>
             <span className="flex items-center gap-1.5">
               <GithubIcon size={11} />
@@ -97,10 +110,12 @@ export default function PassportHeader() {
           {/* Social links */}
           <div className="flex items-center gap-2">
             {[
-              { icon: GithubIcon, href: `https://github.com/${user?.githubUsername}`, label: 'GitHub' },
-              { icon: TwitterIcon, href: 'https://twitter.com', label: 'Twitter' },
-              { icon: GlobeIcon, href: '#', label: 'Website' },
-            ]?.map(({ icon: Icon, href, label }) => (
+              { icon: GithubIcon, href: `https://github.com/${user?.githubUsername}`, label: 'GitHub', show: true },
+              { icon: TwitterIcon, href: user?.socials?.twitter, label: 'Twitter', show: !!user?.socials?.twitter },
+              { icon: LinkedinIcon, href: user?.socials?.linkedin, label: 'LinkedIn', show: !!user?.socials?.linkedin },
+              { icon: LeetcodeIcon, href: user?.socials?.leetcode, label: 'LeetCode', show: !!user?.socials?.leetcode },
+              { icon: GlobeIcon, href: user?.socials?.website, label: 'Website', show: !!user?.socials?.website },
+            ]?.filter(s => s.show).map(({ icon: Icon, href, label }) => (
               <a
                 key={`passport-social-${label}`}
                 href={href}
