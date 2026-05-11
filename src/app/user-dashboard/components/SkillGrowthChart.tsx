@@ -1,11 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend
 } from 'recharts';
-import { SKILL_GROWTH_DATA } from '@/lib/mockData';
+import { useUser } from '@/lib/contexts/UserContext';
+import { createClient } from '@/lib/supabase/client';
+import { Cpu } from 'lucide-react';
 
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string }>; label?: string }) {
   if (!active || !payload?.length) return null;
@@ -23,9 +25,60 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   );
 }
 
+interface GrowthPoint {
+  date: string;
+  skills: number;
+  confidence: number;
+}
+
 export default function SkillGrowthChart() {
-  // Analytics data will be populated once the AI miner runs
-  const data = SKILL_GROWTH_DATA.length > 0 ? SKILL_GROWTH_DATA : [{ week: 'Now', skills: 0, confidence: 0 }];
+  const { user } = useUser();
+  const [data, setData] = useState<GrowthPoint[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchGrowth = async () => {
+      const supabase = createClient();
+      const { data: skills } = await supabase
+        .from('skills')
+        .select('created_at, confidence')
+        .eq('user_id', user.uid)
+        .order('created_at', { ascending: true });
+
+      if (skills && skills.length > 0) {
+        // Group skills by date and build cumulative growth
+        const grouped: Record<string, { count: number; totalConf: number }> = {};
+        skills.forEach((s: Record<string, string | number>) => {
+          const date = new Date(s.created_at as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          if (!grouped[date]) grouped[date] = { count: 0, totalConf: 0 };
+          grouped[date].count++;
+          grouped[date].totalConf += (s.confidence as number) || 0;
+        });
+
+        let cumulative = 0;
+        const points: GrowthPoint[] = Object.entries(grouped).map(([date, { count, totalConf }]) => {
+          cumulative += count;
+          return {
+            date,
+            skills: cumulative,
+            confidence: Math.round(totalConf / count),
+          };
+        });
+        setData(points);
+      }
+    };
+    fetchGrowth();
+  }, [user]);
+
+  if (data.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center">
+        <Cpu size={28} className="text-muted-foreground opacity-20 mb-3" />
+        <p className="text-xs text-muted-foreground">No skill data yet</p>
+        <p className="text-[10px] text-muted-foreground mt-1">Run the Ambient Miner to see growth trends</p>
+      </div>
+    );
+  }
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -42,7 +95,7 @@ export default function SkillGrowthChart() {
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
         <XAxis
-          dataKey="week"
+          dataKey="date"
           tick={{ fill: 'var(--muted-foreground)', fontSize: 10, fontFamily: 'var(--font-mono)' }}
           axisLine={false}
           tickLine={false}

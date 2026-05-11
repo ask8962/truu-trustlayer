@@ -1,11 +1,31 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { SkillCredential } from '@/lib/types';
 import TierBadge from './TierBadge';
 import ProofHashDisplay from './ProofHashDisplay';
-import { CheckCircle2, Calendar } from 'lucide-react';
+import { CheckCircle2, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+
+function ProofToggle({ hash }: { hash: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mb-3">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 text-[9px] font-mono text-muted-foreground uppercase tracking-widest hover:text-foreground transition-colors"
+      >
+        {open ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+        {open ? 'Hide Proof' : 'View Proof'}
+      </button>
+      {open && (
+        <div className="mt-1.5 p-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+          <ProofHashDisplay hash={hash} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -81,11 +101,8 @@ export default function SkillCard({ skill, index }: { skill: SkillCredential; in
         </div>
       </div>
 
-      {/* Proof hash */}
-      <div className="mb-3 p-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-        <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-widest mb-1">PROOF HASH</p>
-        <ProofHashDisplay hash={skill.proofHash} />
-      </div>
+      {/* Proof hash — collapsible to reduce clutter */}
+      <ProofToggle hash={skill.proofHash} />
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono">

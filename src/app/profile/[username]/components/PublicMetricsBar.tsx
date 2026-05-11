@@ -55,7 +55,7 @@ export default function PublicMetricsBar() {
         return (
           <div
             key={m?.id}
-            className={`glass-card rounded-xl p-4 border ${m?.border} ${m?.bg} flex items-center gap-3`}
+            className={`rounded-xl p-4 border ${m?.border} ${m?.bg} flex items-center gap-3 backdrop-blur-sm bg-opacity-100`}
           >
             <Icon size={16} className={m?.color} />
             <div>

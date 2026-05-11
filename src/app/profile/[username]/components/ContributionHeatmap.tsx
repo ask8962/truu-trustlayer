@@ -80,7 +80,7 @@ export default function ContributionHeatmap() {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-2 mt-4 justify-end">
+        <div className="flex items-center gap-2 mt-4 ml-6">
           <span className="text-[9px] font-mono text-muted-foreground">Less</span>
           {[0, 2, 4, 6, 9].map((v) => (
             <div

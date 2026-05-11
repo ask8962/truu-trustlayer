@@ -1,11 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Zap, Shield } from 'lucide-react';
+import { ArrowRight, Zap, Shield, LayoutDashboard } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 
 const GithubIcon = ({ size = 18, className = '' }: { size?: number; className?: string }) => (
@@ -17,7 +18,17 @@ const GithubIcon = ({ size = 18, className = '' }: { size?: number; className?: 
 
 export default function HeroSection() {
   const [loading, setLoading] = React.useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
+    };
+    checkAuth();
+  }, []);
 
   const handleGitHubConnect = async () => {
     try {
@@ -101,15 +112,26 @@ export default function HeroSection() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-4"
         >
-          <button
-            onClick={handleGitHubConnect}
-            disabled={loading}
-            className="btn-primary flex items-center gap-3 px-8 py-4 rounded-xl text-base font-semibold relative z-10 w-full sm:w-auto"
-          >
-            <GithubIcon size={18} className="relative z-10" />
-            <span className="relative z-10">Connect GitHub to Start Mining</span>
-            <ArrowRight size={16} className="relative z-10" />
-          </button>
+          {isLoggedIn ? (
+            <Link
+              href="/user-dashboard"
+              className="btn-primary flex items-center gap-3 px-8 py-4 rounded-xl text-base font-semibold relative z-10 w-full sm:w-auto"
+            >
+              <LayoutDashboard size={18} className="relative z-10" />
+              <span className="relative z-10">Go to Dashboard</span>
+              <ArrowRight size={16} className="relative z-10" />
+            </Link>
+          ) : (
+            <button
+              onClick={handleGitHubConnect}
+              disabled={loading}
+              className="btn-primary flex items-center gap-3 px-8 py-4 rounded-xl text-base font-semibold relative z-10 w-full sm:w-auto"
+            >
+              <GithubIcon size={18} className="relative z-10" />
+              <span className="relative z-10">Connect GitHub to Start Mining</span>
+              <ArrowRight size={16} className="relative z-10" />
+            </button>
+          )}
           <a
             href="#how-it-works"
             className="btn-ghost flex items-center gap-2 px-8 py-4 rounded-xl text-base font-medium w-full sm:w-auto"
