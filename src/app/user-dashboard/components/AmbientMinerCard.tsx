@@ -19,6 +19,7 @@ export default function AmbientMinerCard() {
   const [skillsFound, setSkillsFound] = useState(0);
   const [liveSkills, setLiveSkills] = useState<string[]>([]);
   const [showShareCta, setShowShareCta] = useState(false);
+  const [lastAnalyzed, setLastAnalyzed] = useState<string | null>(null);
 
   // Fetch stats from Supabase on mount
   useEffect(() => {
@@ -42,17 +43,28 @@ export default function AmbientMinerCard() {
       const found = skills?.length || 0;
       setSkillsFound(found);
 
+      // Check cache
+      const { data: cache } = await supabase
+        .from('mined_profiles')
+        .select('mined_at')
+        .eq('user_id', user.uid)
+        .single();
+      
+      if (cache) {
+        setLastAnalyzed(new Date(cache.mined_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }));
+      }
+
       // Auto-mine on first visit (no runs + no skills = brand new user)
-      if (runs === 0 && found === 0 && miningState === 'idle') {
+      if (runs === 0 && found === 0 && !cache && miningState === 'idle') {
         // Small delay so UI renders first
-        setTimeout(() => runMiner(), 1500);
+        setTimeout(() => runMiner(false), 1500);
       }
     };
     fetchStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const runMiner = async () => {
+  const runMiner = async (force = true) => {
     setMiningState('running');
     setProgress(0);
     setLiveSkills([]);
@@ -66,7 +78,11 @@ export default function AmbientMinerCard() {
     }, 600);
 
     try {
-      const res = await fetch('/api/mine', { method: 'POST' });
+      const res = await fetch('/api/mine', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force })
+      });
       const data = await res.json();
 
       clearInterval(progressInterval);
@@ -79,7 +95,10 @@ export default function AmbientMinerCard() {
       setProgress(100);
       setDetectedCount(data.skills_detected);
       setSkillsFound(data.skills_detected);
-      setTotalRuns(prev => prev + 1);
+      setLastAnalyzed(new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }));
+      if (!data.cached) {
+        setTotalRuns(prev => prev + 1);
+      }
       setShowShareCta(true);
 
       // Show detected skill names in the animation
@@ -139,6 +158,11 @@ export default function AmbientMinerCard() {
         <div className="flex items-center gap-2">
           <Cpu size={16} className="text-accent" />
           <span className="text-sm font-semibold">Ambient Miner</span>
+          {lastAnalyzed && miningState === 'idle' && (
+            <span className="text-[10px] font-mono text-muted-foreground ml-2 px-2 py-0.5 bg-white/5 rounded-full">
+              Analyzed {lastAnalyzed}
+            </span>
+          )}
         </div>
         <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-mono uppercase tracking-wider ${
           miningState === 'running' ?'bg-accent/10 border border-accent/30 text-accent'
@@ -225,7 +249,7 @@ export default function AmbientMinerCard() {
       </div>
 
       <button
-        onClick={runMiner}
+        onClick={() => runMiner(true)}
         disabled={miningState !== 'idle'}
         className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all duration-200 relative z-10 ${
           miningState === 'idle' ?'btn-primary' :'bg-white/5 border border-border text-muted-foreground cursor-not-allowed'
@@ -234,7 +258,7 @@ export default function AmbientMinerCard() {
         {miningState === 'idle' && (
           <>
             <Play size={14} className="relative z-10" />
-            <span className="relative z-10">Run Ambient Miner</span>
+            <span className="relative z-10">{lastAnalyzed ? 'Re-analyze Profile' : 'Run Ambient Miner'}</span>
           </>
         )}
         {miningState === 'running' && (

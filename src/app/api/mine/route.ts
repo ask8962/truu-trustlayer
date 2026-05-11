@@ -127,16 +127,19 @@ Your job is to protect the credibility of the platform. You must ruthlessly scru
 9. confidence is a number 0-100 representing empirical proof.
 10. category MUST be one of: "Language", "Framework", "Architecture", "Database", "DevOps", "Runtime", "API"
 11. Return 3-10 skills maximum. Cut out the weak ones.
-12. Return ONLY valid JSON, no markdown formatting, no explanations.
+12. Return ONLY valid JSON, no markdown formatting, no explanations. Your output MUST be a JSON object with exactly two keys: "summary" and "skills", OR the error object.
 
 **Example Error Output:**
 {"error": "Insufficient activity for reliable verification."}
 
 **Example Success Output:**
-[
-  {"skillName": "JavaScript", "proficiency": "Expert", "confidence": 85.5, "category": "Language"},
-  {"skillName": "React", "proficiency": "Practitioner", "confidence": 65.0, "category": "Framework"}
-]`;
+{
+  "summary": "This developer actively contributes to high-complexity React projects...",
+  "skills": [
+    {"skillName": "JavaScript", "proficiency": "Expert", "confidence": 85.5, "category": "Language"},
+    {"skillName": "React", "proficiency": "Practitioner", "confidence": 65.0, "category": "Framework"}
+  ]
+}`;
 
   const res = await fetch(GROQ_API_URL, {
     method: 'POST',
@@ -171,16 +174,24 @@ Your job is to protect the credibility of the platform. You must ruthlessly scru
     }
   }
 
-  // Parse JSON from the response (handle markdown code blocks)
-  const jsonMatch = content.match(/\[[\s\S]*\]/);
+  // Parse JSON object from the response (handle markdown code blocks)
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('Could not parse skills JSON from Groq response');
 
   return JSON.parse(jsonMatch[0]);
 }
 
 // ── Step 3: The API Route Handler ───────────────────────────────────
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    let body = {};
+    try {
+      body = await request.json();
+    } catch (e) {
+      // Body is optional
+    }
+    const force = (body as any).force === true;
+
     const supabase = await createClient();
     let {
       data: { user },
@@ -205,6 +216,26 @@ export async function POST() {
       user.user_metadata?.preferred_username ||
       'unknown';
 
+    // 0. Check Cache First
+    if (!force) {
+      const { data: cached } = await supabase
+        .from('mined_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('expires_at', new Date().toISOString())
+        .single();
+      
+      if (cached) {
+        return NextResponse.json({
+          success: true,
+          cached: true,
+          skills_detected: cached.raw_evidence?.length || 0,
+          trust_score: cached.trust_score,
+          skills: cached.raw_evidence
+        });
+      }
+    }
+
     // 1. Fetch GitHub data
     const githubData = await fetchGitHubData(githubUsername);
 
@@ -224,7 +255,9 @@ export async function POST() {
       }, { status: 400 });
     }
 
-    const skills = skillsOrError;
+    const aiResult = skillsOrError;
+    const skills = aiResult.skills || [];
+    const aiSummary = aiResult.summary || '';
 
     // 3. Generate proof hashes and upsert into Supabase
     const skillRows = skills.map(
@@ -294,6 +327,27 @@ export async function POST() {
           }
         })
       }).catch(err => console.error('Failed to trigger mining complete email:', err));
+    }
+
+    const avgConfidence = skills.length > 0 
+      ? skills.reduce((acc: number, s: any) => acc + s.confidence, 0) / skills.length 
+      : 0;
+
+    // Cache the result in mined_profiles
+    const { error: cacheError } = await supabase.from('mined_profiles').upsert({
+      user_id: user.id,
+      trust_score: trustScore,
+      avg_confidence: avgConfidence,
+      repos_analyzed: githubData.ownedReposCount + githubData.forkedReposCount,
+      commits_analyzed: githubData.pushEventsCount,
+      ai_summary: aiSummary,
+      raw_evidence: skills,
+      mined_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+
+    if (cacheError) {
+      console.error('Failed to cache mined profile:', cacheError);
+      // We don't fail the request if caching fails
     }
 
     return NextResponse.json({
