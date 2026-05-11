@@ -8,6 +8,8 @@ import {
 import { useProfile } from '../ProfileContext';
 import AppImage from '@/components/ui/AppImage';
 import ShareProfileButton from '@/components/ShareProfileButton';
+import CompareSearchModal from '@/components/CompareSearchModal';
+import { Swords } from 'lucide-react';
 
 
 
@@ -39,6 +41,7 @@ const LeetcodeIcon = ({ size = 16, className = '' }: { size?: number; className?
 
 export default function PassportHeader() {
   const { profileUser: user } = useProfile();
+  const [isCompareModalOpen, setIsCompareModalOpen] = React.useState(false);
   const scorePercent = (user?.trustScore / 1000) * 100;
 
   return (
@@ -128,9 +131,22 @@ export default function PassportHeader() {
               </a>
             ))}
             <div className="w-px h-5 bg-border/50 mx-1" />
+            <button
+              onClick={() => setIsCompareModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl font-semibold transition-all duration-200 px-3 py-2 text-xs bg-white/5 border border-border/50 hover:bg-white/10 hover:border-border text-foreground"
+            >
+              <Swords size={12} className="text-primary" />
+              Challenge
+            </button>
             <ShareProfileButton username={user?.githubUsername || ''} trustScore={user?.trustScore} variant="compact" />
           </div>
         </div>
+
+        <CompareSearchModal
+          isOpen={isCompareModalOpen}
+          onClose={() => setIsCompareModalOpen(false)}
+          currentUsername={user?.githubUsername || ''}
+        />
 
         {/* Trust Score panel */}
         <div className="flex-shrink-0 w-full lg:w-48">

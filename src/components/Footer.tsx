@@ -22,9 +22,8 @@ const LinkedinIcon = ({ size = 16, className = '' }: { size?: number; className?
 );
 
 const FOOTER_LINKS = [
-  { group: 'Product', links: [{ label: 'Dashboard', href: '/user-dashboard' }, { label: 'How It Works', href: '#how-it-works' }] },
-  { group: 'Company', links: [{ label: 'About', href: '#' }, { label: 'Blog', href: '#' }, { label: 'Careers', href: '#' }] },
-  { group: 'Legal', links: [{ label: 'Privacy', href: '#' }, { label: 'Terms', href: '#' }, { label: 'Security', href: '#' }] },
+  { group: 'Platform', links: [{ label: 'Dashboard', href: '/user-dashboard' }, { label: 'Methodology', href: '/methodology' }] },
+  { group: 'Legal', links: [{ label: 'Privacy', href: '#' }, { label: 'Terms', href: '#' }] },
 ];
 
 export default function Footer() {

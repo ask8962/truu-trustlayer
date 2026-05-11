@@ -15,7 +15,7 @@ const GithubIcon = ({ size = 15, className = '' }: { size?: number; className?: 
 );
 
 const NAV_LINKS = [
-  { label: 'Product', href: '#how-it-works' },
+  { label: 'How it Works', href: '/methodology' },
   { label: 'Dashboard', href: '/user-dashboard' },
 ];
 

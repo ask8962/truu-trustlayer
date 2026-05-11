@@ -96,6 +96,22 @@ export default function SkillDuelView({ data1, data2, username1, username2 }: Pr
   });
 
   const overallWinner = score1 > score2 ? 1 : score2 > score1 ? 2 : 0;
+  
+  // Generate AI Summary
+  let summary = '';
+  const topSkill1 = skillComparisons.filter(s => (TIER_RANK[s.skill1?.proficiency_level || ''] || 0) > (TIER_RANK[s.skill2?.proficiency_level || ''] || 0)).map(s => s.name);
+  const topSkill2 = skillComparisons.filter(s => (TIER_RANK[s.skill2?.proficiency_level || ''] || 0) > (TIER_RANK[s.skill1?.proficiency_level || ''] || 0)).map(s => s.name);
+
+  if (overallWinner === 1) {
+    summary = `While ${u2.display_name || username2} puts up a solid fight, ${u1.display_name || username1} dominates the capability match with a superior Trust Score of ${score1}. `;
+    if (topSkill1.length > 0) summary += `They heavily outperform in ${topSkill1.slice(0, 3).join(', ')}.`;
+  } else if (overallWinner === 2) {
+    summary = `${u2.display_name || username2} comes out on top with a commanding Trust Score of ${score2}. `;
+    if (topSkill2.length > 0) summary += `They show particular dominance in ${topSkill2.slice(0, 3).join(', ')}, outpacing their challenger.`;
+  } else {
+    summary = `A perfectly matched duel! Both developers share identical Trust Scores, showcasing an incredible tie in technical capability.`;
+  }
+
   const duelUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/compare/${username1}-vs-${username2}`
     : '';
@@ -265,6 +281,28 @@ export default function SkillDuelView({ data1, data2, username1, username2 }: Pr
           />
         </motion.div>
 
+        {/* AI Insight Summary */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="mb-10 p-6 glass-card rounded-2xl border border-primary/20 relative overflow-hidden"
+        >
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-accent" />
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-primary/10 rounded-xl">
+              <Zap size={20} className="text-primary" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold flex items-center gap-2 mb-2">
+                TRUU Intelligence Summary
+                <span className="text-[10px] font-mono text-primary bg-primary/10 px-2 py-0.5 rounded-full">AI VERIFIED</span>
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{summary}</p>
+            </div>
+          </div>
+        </motion.div>
+
         {/* Skill-by-Skill Comparison */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -285,63 +323,54 @@ export default function SkillDuelView({ data1, data2, username1, username2 }: Pr
               const r2 = TIER_RANK[skill2?.proficiency_level || ''] || 0;
               const winner = r1 > r2 ? 1 : r2 > r1 ? 2 : r1 === r2 && r1 > 0 ? 0 : -1;
 
+              const c1 = skill1?.confidence || 0;
+              const c2 = skill2?.confidence || 0;
+              const totalC = c1 + c2;
+              const p1Percent = totalC > 0 ? (c1 / totalC) * 100 : 50;
+
               return (
                 <motion.div
                   key={name}
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 + i * 0.03 }}
-                  className="glass-card rounded-xl p-4 border border-border/50 grid grid-cols-[1fr_auto_1fr] gap-3 items-center"
+                  className="glass-card rounded-xl p-5 border border-border/50 relative overflow-hidden group hover:border-border transition-colors"
                 >
-                  {/* Player 1 skill */}
-                  <div className="text-right">
-                    {skill1 ? (
-                      <div className="flex items-center justify-end gap-2">
-                        {winner === 1 && <Trophy size={12} className="text-yellow-400" />}
-                        <span className="text-xs font-mono" style={{ color: TIER_COLOR[skill1.proficiency_level] || 'var(--muted-foreground)' }}>
-                          {skill1.proficiency_level}
+                  <div className="flex justify-between items-center mb-3">
+                    {/* Player 1 */}
+                    <div className="flex items-center gap-2 w-1/3">
+                      {winner === 1 && <Trophy size={14} className="text-yellow-400" />}
+                      {skill1 ? (
+                        <span className="text-xs font-bold font-mono" style={{ color: TIER_COLOR[skill1.proficiency_level] || 'var(--primary)' }}>
+                          {skill1.proficiency_level} <span className="opacity-50 font-normal hidden sm:inline">({skill1.confidence}%)</span>
                         </span>
-                        <div className="w-12 h-1.5 rounded-full bg-white/5 overflow-hidden">
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${skill1.confidence}%`,
-                              background: TIER_COLOR[skill1.proficiency_level] || 'var(--primary)',
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <span className="text-[10px] font-mono text-muted-foreground/40">—</span>
-                    )}
+                      ) : (
+                        <span className="text-xs text-muted-foreground/50 font-mono">—</span>
+                      )}
+                    </div>
+
+                    {/* Skill Name */}
+                    <div className="w-1/3 text-center">
+                      <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{name}</span>
+                    </div>
+
+                    {/* Player 2 */}
+                    <div className="flex items-center gap-2 justify-end w-1/3">
+                      {skill2 ? (
+                        <span className="text-xs font-bold font-mono" style={{ color: TIER_COLOR[skill2.proficiency_level] || 'var(--accent)' }}>
+                          <span className="opacity-50 font-normal hidden sm:inline">({skill2.confidence}%)</span> {skill2.proficiency_level}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/50 font-mono">—</span>
+                      )}
+                      {winner === 2 && <Trophy size={14} className="text-yellow-400" />}
+                    </div>
                   </div>
 
-                  {/* Skill Name */}
-                  <div className="text-center min-w-[100px]">
-                    <span className="text-xs font-semibold">{name}</span>
-                  </div>
-
-                  {/* Player 2 skill */}
-                  <div className="text-left">
-                    {skill2 ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-12 h-1.5 rounded-full bg-white/5 overflow-hidden">
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${skill2.confidence}%`,
-                              background: TIER_COLOR[skill2.proficiency_level] || 'var(--accent)',
-                            }}
-                          />
-                        </div>
-                        <span className="text-xs font-mono" style={{ color: TIER_COLOR[skill2.proficiency_level] || 'var(--muted-foreground)' }}>
-                          {skill2.proficiency_level}
-                        </span>
-                        {winner === 2 && <Trophy size={12} className="text-yellow-400" />}
-                      </div>
-                    ) : (
-                      <span className="text-[10px] font-mono text-muted-foreground/40">—</span>
-                    )}
+                  {/* Tug of war bar */}
+                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden flex">
+                    <div className="h-full transition-all duration-1000" style={{ width: `${p1Percent}%`, background: skill1 ? (TIER_COLOR[skill1.proficiency_level] || 'var(--primary)') : 'transparent' }} />
+                    <div className="h-full transition-all duration-1000" style={{ width: `${100 - p1Percent}%`, background: skill2 ? (TIER_COLOR[skill2.proficiency_level] || 'var(--accent)') : 'transparent' }} />
                   </div>
                 </motion.div>
               );
