@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     // Fetch user data
     const { data: userData } = await supabase
       .from('users')
-      .select('id, github_username, trust_score')
+      .select('uid, github_username, trust_score')
       .ilike('github_username', username)
       .single();
 
@@ -26,11 +26,23 @@ export async function GET(req: NextRequest) {
       return new Response('User not found', { status: 404 });
     }
 
+    // Calculate Percentile
+    let percentile = 0;
+    const { data: allUsers } = await supabase
+      .from('users')
+      .select('trust_score');
+    if (allUsers && allUsers.length > 1) {
+      const scores = allUsers.map((u: any) => u.trust_score || 0);
+      const myScore = userData.trust_score || 0;
+      const belowMe = scores.filter((s: number) => s < myScore).length;
+      percentile = 100 - Math.round((belowMe / scores.length) * 100);
+    }
+
     // Fetch top 3 skills
     const { data: skills } = await supabase
       .from('skills')
       .select('skill_name, proficiency_level, confidence')
-      .eq('user_id', userData.id)
+      .eq('user_id', userData.uid)
       .order('confidence', { ascending: false })
       .limit(3);
 
@@ -82,20 +94,38 @@ export async function GET(req: NextRequest) {
               {username}
             </div>
             
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                marginTop: '24px',
-                padding: '16px 32px',
-                backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                border: '2px solid rgba(139, 92, 246, 0.4)',
-                borderRadius: '9999px',
-                boxShadow: '0 0 40px rgba(139, 92, 246, 0.2)',
-              }}
-            >
-              <span style={{ fontSize: '24px', color: '#a1a1aa', marginRight: '16px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Trust Score</span>
-              <span style={{ fontSize: '56px', fontWeight: 900, color: '#c084fc' }}>{Math.round(trustScore)}</span>
+            <div style={{ display: 'flex', gap: '24px', marginTop: '24px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '16px 32px',
+                  backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                  border: '2px solid rgba(139, 92, 246, 0.4)',
+                  borderRadius: '9999px',
+                  boxShadow: '0 0 40px rgba(139, 92, 246, 0.2)',
+                }}
+              >
+                <span style={{ fontSize: '24px', color: '#a1a1aa', marginRight: '16px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Trust Score</span>
+                <span style={{ fontSize: '56px', fontWeight: 900, color: '#c084fc' }}>{Math.round(trustScore)}</span>
+              </div>
+
+              {percentile > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '16px 32px',
+                    backgroundColor: 'rgba(250, 204, 21, 0.1)',
+                    border: '2px solid rgba(250, 204, 21, 0.4)',
+                    borderRadius: '9999px',
+                    boxShadow: '0 0 40px rgba(250, 204, 21, 0.2)',
+                  }}
+                >
+                  <span style={{ fontSize: '24px', color: '#a1a1aa', marginRight: '16px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Ranked</span>
+                  <span style={{ fontSize: '48px', fontWeight: 900, color: '#facc15' }}>Top {percentile}%</span>
+                </div>
+              )}
             </div>
 
             {/* Top Skills */}
