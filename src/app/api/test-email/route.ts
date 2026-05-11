@@ -7,7 +7,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function GET() {
   try {
     // Hardcode the target email here
-    const targetEmail = 'ganukishor@gmail.com'; // <-- REPLACE THIS IF IT IS NOT YOUR GMAIL
+    const targetEmail = 'ganukalp70@gmail.com'; // <-- REPLACE THIS IF IT IS NOT YOUR GMAIL
 
     const data = await resend.emails.send({
       from: 'TRUU <onboarding@resend.dev>',
