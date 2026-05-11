@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, Shield, Award, Zap, CheckCircle2 } from 'lucide-react';
+import { TrendingUp, Shield, Award, Zap, CheckCircle2, Trophy } from 'lucide-react';
 import { useUser } from '@/lib/contexts/UserContext';
 import { createClient } from '@/lib/supabase/client';
 import dynamic from 'next/dynamic';
@@ -13,6 +13,8 @@ export default function TrustScoreCard() {
   const { user } = useUser();
   const [skillCount, setSkillCount] = useState(0);
   const [miningRuns, setMiningRuns] = useState(0);
+  const [percentile, setPercentile] = useState<number | null>(null);
+  const [totalDevs, setTotalDevs] = useState(0);
   const scorePercent = ((user?.trustScore || 0) / 1000) * 100;
 
   useEffect(() => {
@@ -31,6 +33,21 @@ export default function TrustScoreCard() {
         .eq('user_id', user.uid)
         .eq('type', 'mining');
       setMiningRuns(activities?.length || 0);
+
+      // Percentile ranking
+      const { data: allUsers } = await supabase
+        .from('users')
+        .select('trust_score');
+      if (allUsers && allUsers.length > 1) {
+        const scores = allUsers.map((u: Record<string, number>) => u.trust_score || 0);
+        const myScore = user.trustScore || 0;
+        const belowMe = scores.filter((s: number) => s < myScore).length;
+        const pct = Math.round((belowMe / scores.length) * 100);
+        setPercentile(pct);
+        setTotalDevs(scores.length);
+      } else if (allUsers) {
+        setTotalDevs(allUsers.length);
+      }
     };
     fetchStats();
   }, [user]);
@@ -60,6 +77,12 @@ export default function TrustScoreCard() {
             <div className="flex items-center gap-1.5 mt-1">
               <TrendingUp size={12} className="text-muted-foreground" />
               <span className="text-xs font-mono text-muted-foreground">Run miner to build score</span>
+            </div>
+          )}
+          {percentile !== null && totalDevs > 1 && (
+            <div className="flex items-center gap-1.5 mt-1">
+              <Trophy size={12} className="text-yellow-400" />
+              <span className="text-xs font-mono text-yellow-400">Top {100 - percentile}% of {totalDevs} developers</span>
             </div>
           )}
         </div>
