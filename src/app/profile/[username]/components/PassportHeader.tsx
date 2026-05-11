@@ -35,7 +35,7 @@ const LeetcodeIcon = ({ size = 16, className = '' }: { size?: number; className?
   </svg>
 );
 
-// Backend integration point — replace MOCK_USER with Firestore getDoc on users/{username}
+
 
 export default function PassportHeader() {
   const { profileUser: user } = useProfile();

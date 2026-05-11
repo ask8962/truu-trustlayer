@@ -15,6 +15,11 @@ async function fetchGitHubData(username: string) {
     `https://api.github.com/users/${username}/repos?per_page=100&sort=pushed`,
     { headers }
   );
+  if (reposRes.status === 403 || reposRes.status === 429) {
+    const resetHeader = reposRes.headers.get('x-ratelimit-reset');
+    const retryMins = resetHeader ? Math.ceil((parseInt(resetHeader) * 1000 - Date.now()) / 60000) : 5;
+    throw new Error(`GitHub API rate limited. Try again in ${retryMins} minute${retryMins === 1 ? '' : 's'}.`);
+  }
   if (!reposRes.ok) throw new Error(`GitHub repos API failed: ${reposRes.status}`);
   const repos = await reposRes.json();
 

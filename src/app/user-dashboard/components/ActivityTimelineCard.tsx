@@ -1,11 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, Cpu, Award, RefreshCw, TrendingUp } from 'lucide-react';
 import { ActivityEvent } from '@/lib/types';
-import Icon from '@/components/ui/AppIcon';
-
+import { useUser } from '@/lib/contexts/UserContext';
+import { createClient } from '@/lib/supabase/client';
 
 const EVENT_CONFIG: Record<ActivityEvent['type'], { icon: React.ElementType; color: string; bg: string; border: string }> = {
   mining: { icon: Cpu, color: 'text-accent', bg: 'bg-accent/10', border: 'border-accent/25' },
@@ -26,8 +26,31 @@ function formatRelativeTime(iso: string) {
 }
 
 export default function ActivityTimelineCard() {
-  // Activities will be populated once the AI miner runs and generates events
-  const activities: ActivityEvent[] = [];
+  const { user } = useUser();
+  const [activities, setActivities] = useState<ActivityEvent[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchActivities = async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('user_id', user.uid)
+        .order('created_at', { ascending: false })
+        .limit(12);
+      if (data) {
+        setActivities(data.map((a: Record<string, string>) => ({
+          id: a.id,
+          userId: a.user_id,
+          type: (a.type as ActivityEvent['type']) || 'mining',
+          message: a.message,
+          createdAt: a.created_at,
+        })));
+      }
+    };
+    fetchActivities();
+  }, [user]);
 
   return (
     <div className="glass-card rounded-2xl p-5 border border-border/50">

@@ -24,11 +24,35 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'TRUU — The Global Trust Layer for Human Capability',
-  description: 'TRUU replaces traditional resumes by automatically analyzing real GitHub activity and issuing mathematically verifiable Skill Credentials for developers.',
+  title: 'TRUU — AI-Verified Developer Skill Credentials',
+  description: 'TRUU replaces resumes by analyzing real GitHub activity and issuing AI-verified Skill Credentials. Get your Capability Passport in 30 seconds.',
+  keywords: ['developer skills', 'AI verification', 'GitHub', 'skill credentials', 'developer portfolio', 'trust score', 'capability passport'],
+  authors: [{ name: 'TRUU' }],
+  openGraph: {
+    title: 'TRUU — AI-Verified Developer Skill Credentials',
+    description: 'Connect your GitHub. Get AI-verified skills. Share your Capability Passport.',
+    url: 'https://truu-trustlayer.vercel.app',
+    siteName: 'TRUU',
+    type: 'website',
+    images: [
+      {
+        url: '/api/og?username=ask8962',
+        width: 1200,
+        height: 630,
+        alt: 'TRUU Capability Passport',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'TRUU — AI-Verified Developer Skill Credentials',
+    description: 'Connect your GitHub. Get AI-verified skills in 30 seconds.',
+    images: ['/api/og?username=ask8962'],
+  },
   icons: {
     icon: [{ url: '/favicon.ico', type: 'image/x-icon' }],
   },
+  metadataBase: new URL('https://truu-trustlayer.vercel.app'),
 };
 
 export default function RootLayout({

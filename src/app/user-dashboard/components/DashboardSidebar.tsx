@@ -176,7 +176,7 @@ export default function DashboardSidebar({ collapsed, onToggle, mobileOpen, onMo
             <span className="text-[11px] font-mono text-green-400">GitHub Connected</span>
             <span className="ml-auto w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1 font-mono">Last sync: 47m ago</p>
+          <p className="text-[10px] text-muted-foreground mt-1 font-mono">Synced on login</p>
         </div>
       )}
 

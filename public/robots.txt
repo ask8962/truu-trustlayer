@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Allow: /profile/
+Disallow: /user-dashboard/
+Disallow: /api/mine
+Disallow: /auth/
+
+Sitemap: https://truu-trustlayer.vercel.app/sitemap.xml
