@@ -72,10 +72,18 @@ async function fetchGitHubData(username: string) {
   // Collect all unique topics
   const allTopics = [...new Set(repoData.flatMap(r => (r.topics as string[]) || []))];
 
+  // Hard Data Constraints
+  const ownedRepos = repoData.filter(r => !r.is_fork);
+  const forkedRepos = repoData.filter(r => r.is_fork);
+  const ownedStars = ownedRepos.reduce((acc, r) => acc + (r.stars as number || 0), 0);
+
   return {
     repos: repoData,
     repoCount: repos.length,
-    pushEvents,
+    ownedReposCount: ownedRepos.length,
+    forkedReposCount: forkedRepos.length,
+    ownedStars,
+    pushEventsCount: pushEvents.length,
     languageTotals,
     topics: allTopics,
   };
@@ -86,12 +94,13 @@ async function extractSkillsWithGroq(githubData: Record<string, unknown>) {
   const groqKey = process.env.GROQ_API_KEY;
   if (!groqKey) throw new Error('GROQ_API_KEY not set');
 
-  const prompt = `You are a senior developer skill analyzer for TRUU — an AI-powered developer verification platform.
-
-Analyze the following GitHub data for a developer and extract their technical skills.
+  const prompt = `You are a STRICT, unforgiving senior developer auditor for TRUU — an AI-powered developer verification platform.
+Your job is to protect the credibility of the platform. You must ruthlessly scrutinize the following GitHub data and extract ONLY genuinely proven technical skills.
 
 **GitHub Data:**
-- Total Repositories: ${(githubData.repos as Array<unknown>).length}
+- Total Owned Repositories: ${githubData.ownedReposCount}
+- Total Forked Repositories: ${githubData.forkedReposCount}
+- Total Stars on Owned Repositories: ${githubData.ownedStars}
 - Language Breakdown (bytes): ${JSON.stringify(githubData.languageTotals)}
 - Repository Topics: ${JSON.stringify(githubData.topics)}
 - Repository Details: ${JSON.stringify(
@@ -101,28 +110,33 @@ Analyze the following GitHub data for a developer and extract their technical sk
       languages: r.languages,
       stars: r.stars,
       topics: r.topics,
+      is_fork: r.is_fork
     }))
   )}
-- Recent Push Events: ${(githubData.pushEvents as Array<unknown>).length} in the last 90 days
+- Recent Push Events: ${githubData.pushEventsCount} in the last 90 days
 
-**RULES:**
-1. Return a JSON array of skill objects.
-2. Each skill must have: "skillName", "proficiency", "confidence", "category"
-3. proficiency MUST be one of: "Novice", "Practitioner", "Expert", "Master"
-4. confidence is a number 0-100 representing how certain you are
-5. category MUST be one of: "Language", "Framework", "Architecture", "Database", "DevOps", "Runtime", "API"
-6. Base proficiency on: language byte count, repo count using it, recency, and project complexity
-7. Only include skills with confidence >= 50
-8. Return 5-15 skills maximum
-9. DO NOT include any explanation, ONLY the JSON array.
+**CRITICAL RULES:**
+1. If the developer has fewer than 2 OWNED repositories OR fewer than 5 recent push events, data is too weak. You MUST return exactly: {"error": "Insufficient activity for reliable verification."}
+2. Do NOT infer expertise from language byte tags alone. A language tag on a fork or empty repo means NOTHING.
+3. If the profile is mostly forks (${githubData.forkedReposCount} forks vs ${githubData.ownedReposCount} owned), heavily penalize all confidence scores.
+4. "Master" or "Expert" proficiency requires multiple owned repos, stars (${githubData.ownedStars} total), and high recent activity.
+5. High confidence (>80%) requires owned repositories with stars and consistent recent push events.
+6. Return a JSON array of skill objects OR the error object.
+7. Each skill must have: "skillName", "proficiency", "confidence", "category"
+8. proficiency MUST be one of: "Novice", "Practitioner", "Expert", "Master"
+9. confidence is a number 0-100 representing empirical proof.
+10. category MUST be one of: "Language", "Framework", "Architecture", "Database", "DevOps", "Runtime", "API"
+11. Return 3-10 skills maximum. Cut out the weak ones.
+12. Return ONLY valid JSON, no markdown formatting, no explanations.
 
-**Example output:**
+**Example Error Output:**
+{"error": "Insufficient activity for reliable verification."}
+
+**Example Success Output:**
 [
-  {"skillName": "JavaScript", "proficiency": "Expert", "confidence": 92.5, "category": "Language"},
-  {"skillName": "React", "proficiency": "Practitioner", "confidence": 74.2, "category": "Framework"}
-]
-
-Return ONLY the JSON array, nothing else.`;
+  {"skillName": "JavaScript", "proficiency": "Expert", "confidence": 85.5, "category": "Language"},
+  {"skillName": "React", "proficiency": "Practitioner", "confidence": 65.0, "category": "Framework"}
+]`;
 
   const res = await fetch(GROQ_API_URL, {
     method: 'POST',
@@ -145,6 +159,17 @@ Return ONLY the JSON array, nothing else.`;
 
   const data = await res.json();
   const content = data.choices?.[0]?.message?.content || '[]';
+
+  // Check for special error object
+  const errorMatch = content.match(/\{[\s\S]*"error"[\s\S]*\}/);
+  if (errorMatch) {
+    try {
+      const errObj = JSON.parse(errorMatch[0]);
+      if (errObj.error) return errObj;
+    } catch (e) {
+      // Ignore parse error and try array fallback
+    }
+  }
 
   // Parse JSON from the response (handle markdown code blocks)
   const jsonMatch = content.match(/\[[\s\S]*\]/);
@@ -184,7 +209,22 @@ export async function POST() {
     const githubData = await fetchGitHubData(githubUsername);
 
     // 2. Extract skills with Groq AI
-    const skills = await extractSkillsWithGroq(githubData as Record<string, unknown>);
+    const skillsOrError = await extractSkillsWithGroq(githubData as Record<string, unknown>);
+
+    if (skillsOrError.error) {
+      console.warn(`[STRICT MINER] Rejected profile @${githubUsername}: ${skillsOrError.error}`);
+      
+      // Enforce harsh 0 trust score and wipe old skills on rejection
+      await supabase.from('skills').delete().eq('user_id', user.id);
+      await supabase.from('users').update({ trust_score: 0 }).eq('id', user.id);
+      
+      return NextResponse.json({
+        success: false,
+        error: skillsOrError.error
+      }, { status: 400 });
+    }
+
+    const skills = skillsOrError;
 
     // 3. Generate proof hashes and upsert into Supabase
     const skillRows = skills.map(

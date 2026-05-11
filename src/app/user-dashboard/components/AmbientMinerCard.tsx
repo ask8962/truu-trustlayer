@@ -102,12 +102,21 @@ export default function AmbientMinerCard() {
       clearInterval(progressInterval);
       setMiningState('error');
       const message = err instanceof Error ? err.message : 'Mining failed';
-      toast.error('Mining failed', { description: message });
+      
+      // If it's our strict validation error, show a more prominent warning
+      if (message.includes('Insufficient activity')) {
+        toast.warning('Verification Rejected', { 
+          description: message,
+          duration: 8000,
+        });
+      } else {
+        toast.error('Mining failed', { description: message });
+      }
 
       setTimeout(() => {
         setMiningState('idle');
         setProgress(0);
-      }, 3000);
+      }, message.includes('Insufficient activity') ? 8000 : 3000);
     }
   };
 
@@ -194,10 +203,10 @@ export default function AmbientMinerCard() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center"
+            className="text-center px-4"
           >
             <Cpu size={24} className="text-red-400 mx-auto mb-1 opacity-60" />
-            <p className="text-[10px] font-mono text-red-400">Mining failed — check console</p>
+            <p className="text-[10px] font-mono text-red-400 leading-tight">Verification Failed. Too little activity or too many forks.</p>
           </motion.div>
         )}
       </div>
