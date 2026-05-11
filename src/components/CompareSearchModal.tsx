@@ -15,10 +15,26 @@ export default function CompareSearchModal({ isOpen, onClose, currentUsername }:
   const [challenger, setChallenger] = useState('');
   const router = useRouter();
 
-  const handleChallenge = (e: React.FormEvent) => {
+  const handleChallenge = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!challenger.trim()) return;
     const cleanUsername = challenger.trim().replace('@', '');
+    
+    // Trigger email notification asynchronously
+    fetch('/api/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'CHALLENGE_SENT',
+        targetUsername: cleanUsername,
+        data: {
+          challengerName: currentUsername,
+          challengerUsername: currentUsername,
+          duelUrl: `${window.location.origin}/compare/${currentUsername}-vs-${cleanUsername}`
+        }
+      })
+    }).catch(console.error);
+
     onClose();
     router.push(`/compare/${currentUsername}-vs-${cleanUsername}`);
   };

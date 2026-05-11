@@ -239,6 +239,23 @@ export async function POST() {
 
     await supabase.from('users').update({ trust_score: trustScore }).eq('id', user.id);
 
+    // Trigger Mining Completed email
+    if (user.email) {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+      fetch(`${siteUrl}/api/email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'MINING_COMPLETED',
+          targetEmail: user.email,
+          data: {
+            skillsFound: skills.length,
+            dashboardUrl: `${siteUrl}/user-dashboard`,
+          }
+        })
+      }).catch(err => console.error('Failed to trigger mining complete email:', err));
+    }
+
     return NextResponse.json({
       success: true,
       message: `Mining complete — ${skills.length} skills detected`,

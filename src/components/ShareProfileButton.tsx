@@ -34,11 +34,28 @@ export default function ShareProfileButton({ username, trustScore, variant = 'fu
   const twitterText = encodeURIComponent(`Just got my developer skills AI-verified on @truu_id 🧠\n\nTrust Score: ${trustScore || 0}/1000\n\nCheck my Capability Passport 👇`);
   const twitterUrl = `https://twitter.com/intent/tweet?text=${twitterText}&url=${encodeURIComponent(profileUrl)}`;
 
+  const triggerShareEmail = () => {
+    // Only trigger once per session per user to avoid spam
+    if (typeof window !== 'undefined' && !sessionStorage.getItem(`shared_${username}`)) {
+      sessionStorage.setItem(`shared_${username}`, 'true');
+      fetch('/api/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'PROFILE_SHARED',
+          targetUsername: username,
+          data: {}
+        })
+      }).catch(console.error);
+    }
+  };
+
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(profileUrl);
       setCopied(true);
       toast.success('Profile link copied!', { description: profileUrl });
+      triggerShareEmail();
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error('Failed to copy link');
@@ -97,7 +114,7 @@ export default function ShareProfileButton({ username, trustScore, variant = 'fu
               href={linkedInUrl}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => setOpen(false)}
+              onClick={() => { setOpen(false); triggerShareEmail(); }}
               className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 transition-all group"
             >
               <LinkedInIcon size={14} className="text-[#0A66C2]" />
@@ -112,7 +129,7 @@ export default function ShareProfileButton({ username, trustScore, variant = 'fu
               href={twitterUrl}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => setOpen(false)}
+              onClick={() => { setOpen(false); triggerShareEmail(); }}
               className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 transition-all group"
             >
               <TwitterIcon size={14} className="text-foreground" />
