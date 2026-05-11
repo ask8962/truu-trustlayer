@@ -141,6 +141,19 @@ export default function HeroSection() {
           </a>
         </motion.div>
 
+        {/* Privacy Note */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="mt-6 text-center max-w-sm mx-auto"
+        >
+          <p className="text-[11px] text-muted-foreground/70 font-mono leading-relaxed">
+            <Shield size={10} className="inline mr-1 text-primary/70" />
+            We only read your commit metadata to verify skills. We do not store your source code. You can revoke access and delete your data at any time.
+          </p>
+        </motion.div>
+
         {/* Social proof pill */}
         <motion.div
           initial={{ opacity: 0 }}

@@ -8,6 +8,7 @@ import CredentialGrid from './CredentialGrid';
 import TechStackSection from './TechStackSection';
 import ContributionHeatmap from './ContributionHeatmap';
 import PublicMetricsBar from './PublicMetricsBar';
+import ProofTimeline from './ProofTimeline';
 import Footer from '@/components/Footer';
 import { useProfile } from '../ProfileContext';
 import { createClient } from '@/lib/supabase/client';
@@ -88,6 +89,15 @@ export default function PassportView() {
           className="mt-12"
         >
           <ContributionHeatmap />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.45 }}
+          className="mt-12"
+        >
+          <ProofTimeline />
         </motion.div>
 
         {/* CTA for visitors */}
