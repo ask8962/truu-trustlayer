@@ -22,7 +22,7 @@ const LinkedinIcon = ({ size = 16, className = '' }: { size?: number; className?
 );
 
 const FOOTER_LINKS = [
-  { group: 'Product', links: [{ label: 'Dashboard', href: '/user-dashboard' }, { label: 'Passport', href: '/profile/[username]' }, { label: 'How It Works', href: '#how-it-works' }] },
+  { group: 'Product', links: [{ label: 'Dashboard', href: '/user-dashboard' }, { label: 'How It Works', href: '#how-it-works' }] },
   { group: 'Company', links: [{ label: 'About', href: '#' }, { label: 'Blog', href: '#' }, { label: 'Careers', href: '#' }] },
   { group: 'Legal', links: [{ label: 'Privacy', href: '#' }, { label: 'Terms', href: '#' }, { label: 'Security', href: '#' }] },
 ];

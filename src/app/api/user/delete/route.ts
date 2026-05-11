@@ -11,17 +11,18 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Explicitly delete user data to ensure it is wiped even if CASCADE is not set up perfectly
-    await supabase.from('activities').delete().eq('user_id', user.id);
-    await supabase.from('skills').delete().eq('user_id', user.id);
-    await supabase.from('users').delete().eq('uid', user.id);
-
-    // Delete user from Supabase Auth using the Admin API
+    // Use Admin API to bypass RLS (since we lack DELETE policies on users/activities)
     const supabaseAdmin = createSupabaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+
+    // Explicitly delete user data to ensure it is wiped
+    await supabaseAdmin.from('activities').delete().eq('user_id', user.id);
+    await supabaseAdmin.from('skills').delete().eq('user_id', user.id);
+    await supabaseAdmin.from('users').delete().eq('id', user.id);
     
+    // Delete user from Supabase Auth
     const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
     
     if (deleteAuthError) {

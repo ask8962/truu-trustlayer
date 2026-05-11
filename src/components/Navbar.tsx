@@ -17,7 +17,6 @@ const GithubIcon = ({ size = 15, className = '' }: { size?: number; className?: 
 const NAV_LINKS = [
   { label: 'Product', href: '#how-it-works' },
   { label: 'Dashboard', href: '/user-dashboard' },
-  { label: 'Passport', href: '/profile/[username]' },
 ];
 
 export default function Navbar() {

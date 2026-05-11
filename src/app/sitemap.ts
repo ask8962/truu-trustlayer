@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 export default async function sitemap(): Promise<MetadataRoute['sitemap']> {
   const baseUrl = 'https://truu-trustlayer.vercel.app';
@@ -16,7 +16,10 @@ export default async function sitemap(): Promise<MetadataRoute['sitemap']> {
 
   // Dynamic profile pages — fetch all users
   try {
-    const supabase = await createClient();
+    const supabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
     const { data: users } = await supabase
       .from('users')
       .select('github_username, created_at')
