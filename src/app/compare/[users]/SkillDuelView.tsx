@@ -55,7 +55,7 @@ function getAvgConfidence(skills: Skill[]) {
 }
 
 function getTrustScore(user: UserProfile, skills: Skill[]) {
-  return user.trust_score || skills.length * 50;
+  return user.trust_score || (skills.length > 0 ? skills.length * 50 : 0);
 }
 
 function getWinner(v1: number, v2: number): 0 | 1 | 2 {
@@ -63,6 +63,26 @@ function getWinner(v1: number, v2: number): 0 | 1 | 2 {
   if (v2 > v1) return 2;
   return 0;
 }
+
+const normalizeSkillName = (name: string) => {
+  const normalized = name.toLowerCase().replace(/[^a-z0-9+#]/g, '');
+  const map: Record<string, string> = {
+    'js': 'JavaScript', 'javascript': 'JavaScript',
+    'ts': 'TypeScript', 'typescript': 'TypeScript',
+    'reactjs': 'React', 'react': 'React',
+    'node': 'Node.js', 'nodejs': 'Node.js',
+    'vue': 'Vue', 'vuejs': 'Vue',
+    'cpp': 'C++', 'cplusplus': 'C++',
+    'c#': 'C#', 'csharp': 'C#',
+    'py': 'Python', 'python': 'Python',
+    'html': 'HTML', 'html5': 'HTML',
+    'css': 'CSS', 'css3': 'CSS',
+    'golang': 'Go', 'go': 'Go',
+  };
+  // We keep the original casing if it's not in the map, but we'll use a title-cased version to be safe,
+  // or just return the original name. The map values are already nicely formatted.
+  return map[normalized] || name.charAt(0).toUpperCase() + name.slice(1); 
+};
 
 export default function SkillDuelView({ data1, data2, username1, username2 }: Props) {
   const [copied, setCopied] = useState(false);
@@ -74,11 +94,24 @@ export default function SkillDuelView({ data1, data2, username1, username2 }: Pr
   const conf1 = getAvgConfidence(s1);
   const conf2 = getAvgConfidence(s2);
 
-  // Build unified skill comparison
-  const allSkillNames = new Set([...s1.map(s => s.skill_name), ...s2.map(s => s.skill_name)]);
-  const skillComparisons = Array.from(allSkillNames).map(name => {
-    const skill1 = s1.find(s => s.skill_name === name);
-    const skill2 = s2.find(s => s.skill_name === name);
+  // Normalize skills
+  const normS1 = s1.map(s => ({ ...s, normName: normalizeSkillName(s.skill_name) }));
+  const normS2 = s2.map(s => ({ ...s, normName: normalizeSkillName(s.skill_name) }));
+
+  // Find shared skills (intersection)
+  const s1Names = new Set(normS1.map(s => s.normName));
+  const s2Names = new Set(normS2.map(s => s.normName));
+  const sharedNames = new Set([...s1Names].filter(x => s2Names.has(x)));
+
+  // Calculate Overlap %
+  const totalUniqueSkills = new Set([...s1Names, ...s2Names]).size;
+  const overlapPercent = totalUniqueSkills > 0 ? Math.round((sharedNames.size / totalUniqueSkills) * 100) : 0;
+
+  // Build shared skill comparison
+  const skillComparisons = Array.from(sharedNames).map(name => {
+    // Sort by confidence to get the best representation if there are duplicates
+    const skill1 = normS1.filter(s => s.normName === name).sort((a, b) => b.confidence - a.confidence)[0];
+    const skill2 = normS2.filter(s => s.normName === name).sort((a, b) => b.confidence - a.confidence)[0];
     return { name, skill1, skill2 };
   }).sort((a, b) => {
     const maxA = Math.max(TIER_RANK[a.skill1?.proficiency_level || ''] || 0, TIER_RANK[a.skill2?.proficiency_level || ''] || 0);
@@ -86,7 +119,7 @@ export default function SkillDuelView({ data1, data2, username1, username2 }: Pr
     return maxB - maxA;
   });
 
-  // Count wins
+  // Count wins for shared skills
   let wins1 = 0, wins2 = 0;
   skillComparisons.forEach(({ skill1, skill2 }) => {
     const r1 = TIER_RANK[skill1?.proficiency_level || ''] || 0;
@@ -97,19 +130,38 @@ export default function SkillDuelView({ data1, data2, username1, username2 }: Pr
 
   const overallWinner = score1 > score2 ? 1 : score2 > score1 ? 2 : 0;
   
-  // Generate AI Summary
-  let summary = '';
-  const topSkill1 = skillComparisons.filter(s => (TIER_RANK[s.skill1?.proficiency_level || ''] || 0) > (TIER_RANK[s.skill2?.proficiency_level || ''] || 0)).map(s => s.name);
-  const topSkill2 = skillComparisons.filter(s => (TIER_RANK[s.skill2?.proficiency_level || ''] || 0) > (TIER_RANK[s.skill1?.proficiency_level || ''] || 0)).map(s => s.name);
+  // Find Unique Strengths
+  const uniqueS1 = normS1.filter(s => !sharedNames.has(s.normName)).sort((a, b) => (TIER_RANK[b.proficiency_level] || 0) - (TIER_RANK[a.proficiency_level] || 0));
+  const uniqueS2 = normS2.filter(s => !sharedNames.has(s.normName)).sort((a, b) => (TIER_RANK[b.proficiency_level] || 0) - (TIER_RANK[a.proficiency_level] || 0));
 
-  if (overallWinner === 1) {
-    summary = `While ${u2.display_name || username2} puts up a solid fight, ${u1.display_name || username1} dominates the capability match with a superior Trust Score of ${score1}. `;
-    if (topSkill1.length > 0) summary += `They heavily outperform in ${topSkill1.slice(0, 3).join(', ')}.`;
-  } else if (overallWinner === 2) {
-    summary = `${u2.display_name || username2} comes out on top with a commanding Trust Score of ${score2}. `;
-    if (topSkill2.length > 0) summary += `They show particular dominance in ${topSkill2.slice(0, 3).join(', ')}, outpacing their challenger.`;
+  // Generate Concrete Summary
+  let summary = '';
+  
+  if (s1.length === 0 || s2.length === 0) {
+    summary = `Waiting for data. One or both developers need to sync their GitHub profiles to generate a Trust Score and capability passport.`;
+  } else if (sharedNames.size === 0) {
+    summary = `${u1.display_name || username1} and ${u2.display_name || username2} operate in completely different technology stacks with 0% overlap. ${overallWinner === 1 ? username1 : overallWinner === 2 ? username2 : 'Neither'} leads in overall verified Trust Score.`;
   } else {
-    summary = `A perfectly matched duel! Both developers share identical Trust Scores, showcasing an incredible tie in technical capability.`;
+    const winnerName = overallWinner === 1 ? (u1.display_name || username1) : (u2.display_name || username2);
+    const loserName = overallWinner === 1 ? (u2.display_name || username2) : (u1.display_name || username1);
+    
+    summary = `These developers share ${sharedNames.size} core technologies (${overlapPercent}% stack overlap). `;
+    
+    if (overallWinner !== 0) {
+      summary += `${winnerName} wins the head-to-head matchup with a ${overallWinner === 1 ? score1 : score2} Trust Score. `;
+      
+      const winnerWins = overallWinner === 1 ? wins1 : wins2;
+      if (winnerWins > 0) {
+        summary += `They outperform ${loserName} in ${winnerWins} of their shared technologies. `;
+      }
+
+      const winnerUnique = overallWinner === 1 ? uniqueS1 : uniqueS2;
+      if (winnerUnique.length > 0) {
+        summary += `Additionally, they bring unique powerhouse skills like ${winnerUnique.slice(0, 2).map(s => s.normName).join(' and ')} to the table.`;
+      }
+    } else {
+      summary += `It's a dead heat! Both developers have an identical Trust Score of ${score1}, proving to be equally formidable engineers.`;
+    }
   }
 
   const duelUrl = typeof window !== 'undefined'
@@ -184,7 +236,7 @@ export default function SkillDuelView({ data1, data2, username1, username2 }: Pr
             className={`glass-card rounded-2xl p-6 border ${overallWinner === 1 ? 'border-primary/50 glow-blue' : 'border-border/50'}`}
           >
             <div className="flex items-center gap-3 mb-4">
-              <img src={u1.avatar_url} alt={username1} className="w-12 h-12 rounded-full border-2 border-primary/30" />
+              <img src={u1.avatar_url || `https://github.com/${username1}.png`} alt={username1} className="w-12 h-12 rounded-full border-2 border-primary/30 object-cover bg-black" />
               <div>
                 <p className="font-bold text-sm">{u1.display_name || username1}</p>
                 <p className="text-[10px] font-mono text-muted-foreground">@{username1}</p>
@@ -227,7 +279,7 @@ export default function SkillDuelView({ data1, data2, username1, username2 }: Pr
             className={`glass-card rounded-2xl p-6 border ${overallWinner === 2 ? 'border-accent/50 glow-purple' : 'border-border/50'}`}
           >
             <div className="flex items-center gap-3 mb-4">
-              <img src={u2.avatar_url} alt={username2} className="w-12 h-12 rounded-full border-2 border-accent/30" />
+              <img src={u2.avatar_url || `https://github.com/${username2}.png`} alt={username2} className="w-12 h-12 rounded-full border-2 border-accent/30 object-cover bg-black" />
               <div>
                 <p className="font-bold text-sm">{u2.display_name || username2}</p>
                 <p className="text-[10px] font-mono text-muted-foreground">@{username2}</p>

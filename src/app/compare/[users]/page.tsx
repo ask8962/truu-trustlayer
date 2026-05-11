@@ -20,7 +20,7 @@ async function getUserData(username: string) {
   const { data: skills } = await supabase
     .from('skills')
     .select('*')
-    .eq('user_id', user.uid);
+    .eq('user_id', user.id);
 
   return { user, skills: skills || [] };
 }
