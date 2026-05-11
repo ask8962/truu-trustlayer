@@ -76,7 +76,7 @@ export default function HeroSection() {
         >
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan animate-pulse" />
           <span className="text-xs font-mono text-muted-foreground tracking-wider uppercase">
-            Cryptographic Skill Verification — Now Live
+            AI Skill Verification — Now Live
           </span>
         </motion.div>
 
@@ -101,7 +101,7 @@ export default function HeroSection() {
         >
           Stop writing resumes. Let your code prove your worth automatically.
           TRUU analyzes your real GitHub activity and issues{' '}
-          <span className="text-foreground font-medium">mathematically verifiable</span>{' '}
+          <span className="text-foreground font-medium">AI-verified</span>{' '}
           Skill Credentials.
         </motion.p>
 
@@ -149,7 +149,7 @@ export default function HeroSection() {
           className="mt-8 flex items-center justify-center gap-6 text-xs text-muted-foreground font-mono"
         >
           {[
-            { icon: Shield, text: 'Zero-knowledge verified' },
+            { icon: Shield, text: 'AI-verified from code' },
             { icon: GithubIcon, text: 'GitHub-native' },
             { icon: Zap, text: 'Real-time mining' },
           ].map(({ icon: Icon, text }) => (

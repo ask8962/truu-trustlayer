@@ -35,7 +35,7 @@ export default function Footer() {
           <div className="lg:col-span-2">
             <TruuLogo size={32} />
             <p className="text-sm text-muted-foreground mt-4 leading-relaxed max-w-xs">
-              The global trust layer for human capability. Replacing resumes with mathematically verifiable proof.
+              The global trust layer for human capability. Replacing resumes with AI-verified proof of skill.
             </p>
             <div className="flex items-center gap-3 mt-6">
               {[

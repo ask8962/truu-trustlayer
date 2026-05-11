@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, Cpu, Award, Activity, Settings,
+  LayoutDashboard, Cpu, Award, Activity,
   ChevronLeft, ChevronRight, LogOut, User, ExternalLink, X
 } from 'lucide-react';
 import { useUser } from '@/lib/contexts/UserContext';
@@ -26,7 +26,6 @@ const NAV_ITEMS = [
   { id: 'nav-credentials', icon: Award, label: 'Credentials', href: '/user-dashboard', badge: null },
   { id: 'nav-activity', icon: Activity, label: 'Activity', href: '/user-dashboard', badge: null },
   { id: 'nav-passport', icon: ExternalLink, label: 'Profile', href: '/profile/[username]', badge: null },
-  { id: 'nav-settings', icon: Settings, label: 'Settings', href: '/user-dashboard', badge: null },
 ];
 
 interface SidebarProps {

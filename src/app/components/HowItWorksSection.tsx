@@ -38,7 +38,7 @@ const STEPS = [
     number: '03',
     icon: Share2,
     title: 'Share Proof',
-    description: 'Your Capability Passport is a cryptographically signed public URL. Share it instead of a resume — every claim is mathematically verifiable.',
+    description: 'Your Capability Passport is a public URL backed by AI analysis of your real code. Share it instead of a resume — every skill is verified from your actual commits.',
     color: 'rgba(6,182,212,0.8)',
     glow: 'rgba(6,182,212,0.3)',
     border: 'rgba(6,182,212,0.25)',

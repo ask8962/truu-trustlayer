@@ -31,6 +31,8 @@ function CountUp({ target, duration = 2000, decimals = 0, suffix = '' }: { targe
 export default function TrustMetricsSection() {
   const [devCount, setDevCount] = useState(0);
   const [skillCount, setSkillCount] = useState(0);
+  const [miningRuns, setMiningRuns] = useState(0);
+  const [avgConfidence, setAvgConfidence] = useState(0);
 
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -45,6 +47,19 @@ export default function TrustMetricsSection() {
           .from('skills')
           .select('*', { count: 'exact', head: true });
         setSkillCount(skills || 0);
+
+        const { count: runs } = await supabase
+          .from('activities')
+          .select('*', { count: 'exact', head: true });
+        setMiningRuns(runs || 0);
+
+        const { data: confData } = await supabase
+          .from('skills')
+          .select('confidence');
+        if (confData && confData.length > 0) {
+          const total = confData.reduce((acc: number, s: Record<string, number>) => acc + (s.confidence || 0), 0);
+          setAvgConfidence(Math.round((total / confData.length) * 10) / 10);
+        }
       } catch (e) {
         console.error('Failed to fetch platform metrics', e);
       }
@@ -76,20 +91,20 @@ export default function TrustMetricsSection() {
     {
       id: 'metric-accuracy',
       icon: ShieldCheck,
-      label: 'Verification Accuracy',
-      value: 94.2,
+      label: 'Avg. Confidence',
+      value: avgConfidence,
       suffix: '%',
       decimals: 1,
       color: 'text-cyan',
       glow: 'rgba(6,182,212,0.3)',
     },
     {
-      id: 'metric-growth',
+      id: 'metric-runs',
       icon: TrendingUp,
-      label: 'Weekly Growth Rate',
-      value: 23.7,
-      suffix: '%',
-      decimals: 1,
+      label: 'Mining Runs',
+      value: miningRuns,
+      suffix: '',
+      decimals: 0,
       color: 'text-green-400',
       glow: 'rgba(74,222,128,0.3)',
     },
