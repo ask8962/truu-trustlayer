@@ -60,7 +60,7 @@ export default function RecentSkillDetections() {
           </span>
         </div>
         <Link
-          href="/profile/[username]"
+          href={`/profile/${user?.githubUsername || 'unknown'}`}
           className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground hover:text-primary transition-colors"
         >
           View Passport

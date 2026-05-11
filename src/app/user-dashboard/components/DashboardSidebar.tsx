@@ -12,6 +12,7 @@ import { useUser } from '@/lib/contexts/UserContext';
 import { createClient } from '@/lib/supabase/client';
 import TruuLogo from '@/components/TruuLogo';
 import AppImage from '@/components/ui/AppImage';
+import ShareProfileButton from '@/components/ShareProfileButton';
 
 const GithubIcon = ({ size = 13, className = '' }: { size?: number; className?: string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -159,6 +160,13 @@ export default function DashboardSidebar({ collapsed, onToggle, mobileOpen, onMo
           );
         })}
       </nav>
+
+      {/* Share Profile Button */}
+      {!collapsed && (
+        <div className="mx-3 mb-3">
+          <ShareProfileButton username={user?.githubUsername || ''} trustScore={user?.trustScore} variant="full" />
+        </div>
+      )}
 
       {/* GitHub sync status */}
       {!collapsed && (

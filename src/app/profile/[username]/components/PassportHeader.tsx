@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useProfile } from '../ProfileContext';
 import AppImage from '@/components/ui/AppImage';
-import Icon from '@/components/ui/AppIcon';
+import ShareProfileButton from '@/components/ShareProfileButton';
 
 
 
@@ -107,7 +107,7 @@ export default function PassportHeader() {
             </span>
           </div>
 
-          {/* Social links */}
+          {/* Social links + Share */}
           <div className="flex items-center gap-2">
             {[
               { icon: GithubIcon, href: `https://github.com/${user?.githubUsername}`, label: 'GitHub', show: true },
@@ -115,7 +115,7 @@ export default function PassportHeader() {
               { icon: LinkedinIcon, href: user?.socials?.linkedin, label: 'LinkedIn', show: !!user?.socials?.linkedin },
               { icon: LeetcodeIcon, href: user?.socials?.leetcode, label: 'LeetCode', show: !!user?.socials?.leetcode },
               { icon: GlobeIcon, href: user?.socials?.website, label: 'Website', show: !!user?.socials?.website },
-            ]?.filter(s => s.show).map(({ icon: Icon, href, label }) => (
+            ]?.filter(s => s.show).map(({ icon: SocialIcon, href, label }) => (
               <a
                 key={`passport-social-${label}`}
                 href={href}
@@ -124,9 +124,11 @@ export default function PassportHeader() {
                 aria-label={label}
                 className="p-2 rounded-lg btn-ghost text-muted-foreground hover:text-foreground"
               >
-                <Icon size={15} />
+                <SocialIcon size={15} />
               </a>
             ))}
+            <div className="w-px h-5 bg-border/50 mx-1" />
+            <ShareProfileButton username={user?.githubUsername || ''} trustScore={user?.trustScore} variant="compact" />
           </div>
         </div>
 

@@ -6,6 +6,7 @@ import { Cpu, Play, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUser } from '@/lib/contexts/UserContext';
 import { createClient } from '@/lib/supabase/client';
+import ShareProfileButton from '@/components/ShareProfileButton';
 
 type MiningState = 'idle' | 'running' | 'complete' | 'error';
 
@@ -17,6 +18,7 @@ export default function AmbientMinerCard() {
   const [totalRuns, setTotalRuns] = useState(0);
   const [skillsFound, setSkillsFound] = useState(0);
   const [liveSkills, setLiveSkills] = useState<string[]>([]);
+  const [showShareCta, setShowShareCta] = useState(false);
 
   // Fetch stats from Supabase on mount
   useEffect(() => {
@@ -29,16 +31,25 @@ export default function AmbientMinerCard() {
         .select('id')
         .eq('user_id', user.uid)
         .eq('type', 'mining');
-      setTotalRuns(activities?.length || 0);
+      const runs = activities?.length || 0;
+      setTotalRuns(runs);
 
       // Count skills
       const { data: skills } = await supabase
         .from('skills')
         .select('id')
         .eq('user_id', user.uid);
-      setSkillsFound(skills?.length || 0);
+      const found = skills?.length || 0;
+      setSkillsFound(found);
+
+      // Auto-mine on first visit (no runs + no skills = brand new user)
+      if (runs === 0 && found === 0 && miningState === 'idle') {
+        // Small delay so UI renders first
+        setTimeout(() => runMiner(), 1500);
+      }
     };
     fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const runMiner = async () => {
@@ -69,6 +80,7 @@ export default function AmbientMinerCard() {
       setDetectedCount(data.skills_detected);
       setSkillsFound(data.skills_detected);
       setTotalRuns(prev => prev + 1);
+      setShowShareCta(true);
 
       // Show detected skill names in the animation
       if (data.skills) {
@@ -232,6 +244,14 @@ export default function AmbientMinerCard() {
           <span>Retry</span>
         )}
       </button>
+
+      {/* Post-mining share CTA */}
+      {showShareCta && miningState !== 'running' && (
+        <div className="mt-3 p-3 rounded-xl bg-accent/5 border border-accent/20 text-center">
+          <p className="text-[11px] font-mono text-accent mb-2">🎉 Skills verified! Share your passport</p>
+          <ShareProfileButton username={user?.githubUsername || ''} trustScore={user?.trustScore} variant="compact" />
+        </div>
+      )}
     </div>
   );
 }
