@@ -54,11 +54,8 @@ export default function AmbientMinerCard() {
         setLastAnalyzed(new Date(cache.mined_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }));
       }
 
-      // Auto-mine on first visit (no runs + no skills = brand new user)
-      if (runs === 0 && found === 0 && !cache && miningState === 'idle') {
-        // Small delay so UI renders first
-        setTimeout(() => runMiner(false), 1500);
-      }
+      // Auto-mining is now handled server-side by the DB trigger (on_user_created).
+      // If cache doesn't exist yet, the user can manually click "Run Ambient Miner".
     };
     fetchStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps

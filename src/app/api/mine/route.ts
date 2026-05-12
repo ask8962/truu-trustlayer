@@ -295,20 +295,26 @@ export async function POST(request: Request) {
       message: `Ambient miner analyzed ${githubData.repoCount} repos — ${skills.length} skills detected`,
     });
 
-    // 5. Update trust score based on skills
-    const trustScore = Math.min(
-      1000,
-      Math.round(
-        skills.reduce(
-          (acc: number, s: { confidence: number; proficiency: string }) => {
-            const profMultiplier =
-              s.proficiency === 'Master' ? 4 : s.proficiency === 'Expert' ? 3 : s.proficiency === 'Practitioner' ? 2 : 1;
-            return acc + s.confidence * profMultiplier * 0.3;
-          },
-          0
+    // 5. Update trust score — use DB function if available, otherwise inline fallback
+    let trustScore = 0;
+    try {
+      const { data: rpcScore } = await supabase.rpc('calculate_trust_score', { p_user_id: user.id });
+      trustScore = rpcScore ?? 0;
+    } catch {
+      trustScore = Math.min(
+        1000,
+        Math.round(
+          skills.reduce(
+            (acc: number, s: { confidence: number; proficiency: string }) => {
+              const profMultiplier =
+                s.proficiency === 'Master' ? 4 : s.proficiency === 'Expert' ? 3 : s.proficiency === 'Practitioner' ? 2 : 1;
+              return acc + s.confidence * profMultiplier * 0.3;
+            },
+            0
+          )
         )
-      )
-    );
+      );
+    }
 
     await supabase.from('users').update({ trust_score: trustScore }).eq('id', user.id);
 
@@ -342,7 +348,8 @@ export async function POST(request: Request) {
       commits_analyzed: githubData.pushEventsCount,
       ai_summary: aiSummary,
       raw_evidence: skills,
-      mined_at: new Date().toISOString()
+      mined_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
     }, { onConflict: 'user_id' });
 
     if (cacheError) {

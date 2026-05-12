@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS mined_profiles (
   ai_summary TEXT,
   raw_evidence JSONB,
   mined_at TIMESTAMPTZ DEFAULT now(),
-  expires_at TIMESTAMPTZ GENERATED ALWAYS AS (mined_at + INTERVAL '30 days') STORED
+  expires_at TIMESTAMPTZ DEFAULT (now() + INTERVAL '30 days')
 );
 
 -- Enable RLS
