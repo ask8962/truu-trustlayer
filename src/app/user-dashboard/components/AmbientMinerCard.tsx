@@ -120,7 +120,7 @@ export default function AmbientMinerCard() {
       const message = err instanceof Error ? err.message : 'Mining failed';
       
       // If it's our strict validation error, show a more prominent warning
-      if (message.includes('Insufficient activity')) {
+      if (message.includes('not have enough activity yet') || message.includes('Insufficient activity')) {
         toast.warning('Verification Rejected', { 
           description: message,
           duration: 8000,
@@ -132,7 +132,7 @@ export default function AmbientMinerCard() {
       setTimeout(() => {
         setMiningState('idle');
         setProgress(0);
-      }, message.includes('Insufficient activity') ? 8000 : 3000);
+      }, (message.includes('not have enough activity yet') || message.includes('Insufficient activity')) ? 8000 : 3000);
     }
   };
 
@@ -227,7 +227,7 @@ export default function AmbientMinerCard() {
             className="text-center px-4"
           >
             <Cpu size={24} className="text-red-400 mx-auto mb-1 opacity-60" />
-            <p className="text-[10px] font-mono text-red-400 leading-tight">Verification Failed. Too little activity or too many forks.</p>
+            <p className="text-[10px] font-mono text-red-400 leading-tight">Verification Failed. Not enough public activity found.</p>
           </motion.div>
         )}
       </div>

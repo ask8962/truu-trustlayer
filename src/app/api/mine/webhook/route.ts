@@ -106,7 +106,7 @@ Your job is to protect the credibility of the platform. You must ruthlessly scru
 - Recent Push Events: ${githubData.pushEventsCount} in the last 90 days
 
 **CRITICAL RULES:**
-1. If the developer has fewer than 2 OWNED repositories OR fewer than 5 recent push events, data is too weak. You MUST return exactly: {"error": "Insufficient activity for reliable verification."}
+1. If the developer has fewer than 2 OWNED repositories OR fewer than 5 recent push events, data is too weak. You MUST return exactly: {"error": "Your GitHub profile doesn't have enough activity yet. TRUU needs at least 2 original repositories and recent commits to verify your skills. Start building and come back — we'll be here."}
 2. Do NOT infer expertise from language byte tags alone.
 3. If the profile is mostly forks (${githubData.forkedReposCount} forks vs ${githubData.ownedReposCount} owned), heavily penalize all confidence scores.
 4. "Master" or "Expert" proficiency requires multiple owned repos, stars, and high recent activity.
@@ -120,7 +120,7 @@ Your job is to protect the credibility of the platform. You must ruthlessly scru
 12. Return ONLY valid JSON, no markdown formatting, no explanations.
 
 **Example Error Output:**
-{"error": "Insufficient activity for reliable verification."}
+{"error": "Your GitHub profile doesn't have enough activity yet. TRUU needs at least 2 original repositories and recent commits to verify your skills. Start building and come back — we'll be here."}
 
 **Example Success Output:**
 {
