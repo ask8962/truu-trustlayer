@@ -47,23 +47,24 @@ export default function HeroSection() {
   };
 
   return (
+    <>
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Ambient background */}
       <div className="absolute inset-0 grid-bg opacity-40" />
       <div className="radial-glow-bg absolute inset-0" />
 
-      {/* Floating blobs */}
+      {/* Floating blobs - Richer colors */}
       <div
-        className="ambient-blob w-96 h-96 top-20 left-20 opacity-20"
-        style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.6) 0%, transparent 70%)' }}
+        className="ambient-blob w-96 h-96 top-20 left-20 opacity-30"
+        style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.8) 0%, transparent 70%)' }}
       />
       <div
-        className="ambient-blob w-80 h-80 bottom-32 right-24 opacity-15"
-        style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.6) 0%, transparent 70%)' }}
+        className="ambient-blob w-80 h-80 bottom-32 right-24 opacity-20"
+        style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.8) 0%, transparent 70%)' }}
       />
       <div
-        className="ambient-blob w-64 h-64 top-1/2 right-1/3 opacity-10"
-        style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.5) 0%, transparent 70%)' }}
+        className="ambient-blob w-64 h-64 top-1/2 right-1/3 opacity-20"
+        style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.6) 0%, transparent 70%)' }}
       />
 
       <div className="relative z-10 max-w-screen-2xl mx-auto px-6 lg:px-8 xl:px-10 text-center">
@@ -87,9 +88,9 @@ export default function HeroSection() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-none mb-6"
         >
-          <span className="block text-foreground">The Global</span>
-          <span className="block text-gradient-full">Trust Layer</span>
-          <span className="block text-foreground">for Human Capability.</span>
+          <span className="block text-foreground">The Definitive</span>
+          <span className="block text-gradient-full">Proof of Skill</span>
+          <span className="block text-foreground">for Engineers.</span>
         </motion.h1>
 
         {/* Subtext */}
@@ -99,9 +100,9 @@ export default function HeroSection() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
         >
-          Stop writing resumes. Let your code prove your worth automatically.
-          TRUU analyzes your real GitHub activity and issues{' '}
-          <span className="text-foreground font-medium">AI-verified</span>{' '}
+          Stop writing resumes. Let your actual codebase prove your worth.
+          TRUU analyzes your GitHub repositories, code complexity, and commits to issue{' '}
+          <span className="text-foreground font-medium border-b border-cyan/50 pb-0.5">empirical, AI-verified</span>{' '}
           Skill Credentials.
         </motion.p>
 
@@ -150,7 +151,7 @@ export default function HeroSection() {
         >
           <p className="text-[11px] text-muted-foreground/70 font-mono leading-relaxed">
             <Shield size={10} className="inline mr-1 text-primary/70" />
-            We only read your commit metadata to verify skills. We do not store your source code. You can revoke access and delete your data at any time.
+            We only read your public commit metadata and READMEs to verify skills. We <strong className="text-foreground/80">never</strong> store your source code. You can revoke access and delete your data instantly at any time.
           </p>
         </motion.div>
 
@@ -232,5 +233,73 @@ export default function HeroSection() {
         </motion.div>
       </div>
     </section>
+
+    {/* Trust Score Scale Guide Section */}
+    <section className="py-24 relative overflow-hidden border-t border-white/[0.05] bg-black/40">
+      <div className="absolute inset-0 grid-bg opacity-20" />
+      <div className="max-w-screen-xl mx-auto px-6 relative z-10">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tight">
+            The <span className="text-gradient-full">Universal Standard</span> for Engineering.
+          </h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            TRUU issues a global Trust Score from 0 to 1000 based on the empirical reality of your code, consistency, and system complexity.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Tier 1: Learner */}
+          <div className="glass-card rounded-2xl p-6 border border-white/5 relative overflow-hidden group hover:border-white/10 transition-colors">
+            <div className="absolute top-0 right-0 p-4 opacity-5">
+              <span className="text-6xl font-black">1</span>
+            </div>
+            <div className="text-xs font-mono text-muted-foreground mb-2 tracking-wider">0 - 300 SCORE</div>
+            <h3 className="text-xl font-bold text-white mb-2">Learner</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Building foundational skills. Low commit volume or primarily working on forks and basic projects.
+            </p>
+          </div>
+
+          {/* Tier 2: Practitioner */}
+          <div className="glass-card rounded-2xl p-6 border border-cyan/20 relative overflow-hidden group hover:border-cyan/40 transition-colors">
+            <div className="absolute top-0 right-0 p-4 opacity-10 text-cyan">
+              <span className="text-6xl font-black">2</span>
+            </div>
+            <div className="text-xs font-mono text-cyan mb-2 tracking-wider">300 - 600 SCORE</div>
+            <h3 className="text-xl font-bold text-white mb-2">Practitioner</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Active contributor. Consistent commits, multiple solid repositories, and empirical proof of working code.
+            </p>
+          </div>
+
+          {/* Tier 3: Expert */}
+          <div className="glass-card rounded-2xl p-6 border border-purple-500/30 relative overflow-hidden group hover:border-purple-500/50 transition-colors">
+            <div className="absolute top-0 right-0 p-4 opacity-10 text-purple-500">
+              <span className="text-6xl font-black">3</span>
+            </div>
+            <div className="text-xs font-mono text-purple-400 mb-2 tracking-wider">600 - 900 SCORE</div>
+            <h3 className="text-xl font-bold text-white mb-2">Expert</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              High-impact engineer. Complex architectures, deep language proficiency, and high-quality open-source presence.
+            </p>
+          </div>
+
+          {/* Tier 4: Elite */}
+          <div className="glass-card rounded-2xl p-6 border border-amber-500/40 relative overflow-hidden group hover:border-amber-500/60 transition-colors">
+            <div className="absolute top-0 right-0 p-4 opacity-10 text-amber-500">
+              <span className="text-6xl font-black">4</span>
+            </div>
+            <div className="text-xs font-mono text-amber-500 mb-2 font-bold flex items-center gap-2 tracking-wider">
+              900 - 1000 SCORE <Zap size={12} className="fill-amber-500" />
+            </div>
+            <h3 className="text-xl font-bold text-amber-500 mb-2 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)]">Elite</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Top 1% open-source masters. Flawless consistency, master-level system design, and massive repository impact.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+    </>
   );
 }
