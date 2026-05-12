@@ -71,6 +71,28 @@ async function fetchGitHubData(username: string) {
   const forkedRepos = repoData.filter(r => r.is_fork);
   const ownedStars = ownedRepos.reduce((acc, r) => acc + (r.stars as number || 0), 0);
 
+  // Fetch READMEs for top 3 owned repos (by stars/activity)
+  const topOwnedRepos = [...ownedRepos]
+    .sort((a, b) => (b.stars as number) - (a.stars as number))
+    .slice(0, 3);
+    
+  const readmes = await Promise.all(
+    topOwnedRepos.map(async (repo) => {
+      try {
+        const readmeRes = await fetch(
+          `https://api.github.com/repos/${username}/${repo.name}/readme`,
+          { headers }
+        );
+        if (!readmeRes.ok) return { repo: repo.name, content: 'No README found.' };
+        const readmeData = await readmeRes.json();
+        const decodedContent = Buffer.from(readmeData.content, 'base64').toString('utf-8');
+        return { repo: repo.name, content: decodedContent.substring(0, 1500) }; // Truncate to save tokens
+      } catch {
+        return { repo: repo.name, content: 'Error fetching README.' };
+      }
+    })
+  );
+
   return {
     repos: repoData,
     repoCount: repos.length,
@@ -80,6 +102,7 @@ async function fetchGitHubData(username: string) {
     pushEventsCount: pushEvents.length,
     languageTotals,
     topics: allTopics,
+    readmes,
   };
 }
 
@@ -100,16 +123,17 @@ Your job is to protect the credibility of the platform. You must ruthlessly scru
 - Repository Details: ${JSON.stringify(
     githubData.repos.map((r: any) => ({
       name: r.name, description: r.description, languages: r.languages,
-      stars: r.stars, topics: r.topics, is_fork: r.is_fork
-    }))
+      stars: r.stars, is_fork: r.is_fork
+    })).slice(0, 10)
   )}
+- Top Repository README Snippets (for Deep Context): ${JSON.stringify(githubData.readmes)}
 - Recent Push Events: ${githubData.pushEventsCount} in the last 90 days
 
 **CRITICAL RULES:**
 1. If the developer has fewer than 2 OWNED repositories OR fewer than 5 recent push events, data is too weak. You MUST return exactly: {"error": "Your GitHub profile doesn't have enough activity yet. TRUU needs at least 2 original repositories and recent commits to verify your skills. Start building and come back — we'll be here."}
-2. Do NOT infer expertise from language byte tags alone.
+2. Read the Top Repository README Snippets carefully. Use them to judge system design capability, documentation quality, and true project complexity. Do NOT infer expertise from simple byte counts alone.
 3. If the profile is mostly forks (${githubData.forkedReposCount} forks vs ${githubData.ownedReposCount} owned), heavily penalize all confidence scores.
-4. "Master" or "Expert" proficiency requires multiple owned repos, stars, and high recent activity.
+4. "Master" or "Expert" proficiency requires complex projects documented in READMEs, multiple owned repos, stars, and high recent activity.
 5. High confidence (>80%) requires owned repositories with stars and consistent recent push events.
 6. Return a JSON object with "summary" and "skills" keys, OR the error object.
 7. Each skill must have: "skillName", "proficiency", "confidence", "category"
@@ -214,10 +238,14 @@ export async function POST(request: Request) {
       const { data: rpcScore } = await supabaseAdmin.rpc('calculate_trust_score', { p_user_id: user_id });
       trustScore = rpcScore ?? 0;
     } catch {
+      const v_commits = githubData.pushEventsCount || 0;
+      const v_repos = githubData.ownedReposCount + githubData.forkedReposCount || 0;
+      const baseScore = Math.min(150, v_commits * 0.1) + Math.min(100, v_repos * 5);
+      
       trustScore = Math.min(1000, Math.round(
-        skills.reduce((acc: number, s: any) => {
+        baseScore + skills.reduce((acc: number, s: any) => {
           const m = s.proficiency === 'Master' ? 4 : s.proficiency === 'Expert' ? 3 : s.proficiency === 'Practitioner' ? 2 : 1;
-          return acc + s.confidence * m * 0.3;
+          return acc + s.confidence * m * 0.6;
         }, 0)
       ));
     }

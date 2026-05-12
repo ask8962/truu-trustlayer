@@ -17,8 +17,20 @@ CREATE OR REPLACE FUNCTION calculate_trust_score(p_user_id UUID)
 RETURNS INT AS $$
 DECLARE
   score REAL := 0;
+  v_commits INT := 0;
+  v_repos INT := 0;
   rec RECORD;
 BEGIN
+  -- Fetch activity data from mined_profiles cache
+  SELECT COALESCE(commits_analyzed, 0), COALESCE(repos_analyzed, 0)
+  INTO v_commits, v_repos
+  FROM mined_profiles 
+  WHERE user_id = p_user_id;
+
+  -- 1. Activity Base Score: Up to 150 points for commits, up to 100 points for repos
+  score := LEAST(150, v_commits * 0.1) + LEAST(100, v_repos * 5);
+
+  -- 2. Skills Score (0.6 multiplier instead of 0.3)
   FOR rec IN SELECT confidence, proficiency_level FROM skills WHERE user_id = p_user_id
   LOOP
     score := score + rec.confidence * (
@@ -28,7 +40,7 @@ BEGIN
         WHEN 'Practitioner' THEN 2
         ELSE 1
       END
-    ) * 0.3;
+    ) * 0.6;
   END LOOP;
 
   RETURN LEAST(1000, ROUND(score));
