@@ -24,7 +24,8 @@ export interface SkillCredential {
   userId: string;
   skillName: string;
   proficiency: 'Novice' | 'Practitioner' | 'Expert' | 'Master';
-  confidence: number;
+  verificationTier: 'Strong' | 'Moderate' | 'Weak';
+  evidenceLog?: { reason?: string; [key: string]: any };
   proofHash: string;
   verifiedAt: string;
   category: string;

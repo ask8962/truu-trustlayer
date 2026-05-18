@@ -32,12 +32,13 @@ export default function RecentSkillDetections() {
         .select('*')
         .eq('user_id', user.uid);
       if (data) {
-        setSkills(data.map((s: Record<string, string | number>) => ({
+        setSkills(data.map((s: Record<string, any>) => ({
           id: s.id as string,
           userId: s.user_id as string,
           skillName: s.skill_name as string,
           proficiency: s.proficiency_level as SkillCredential['proficiency'],
-          confidence: (s.confidence as number) || 0,
+          verificationTier: (s.verification_tier as SkillCredential['verificationTier']) || 'Moderate',
+          evidenceLog: s.evidence_log,
           proofHash: (s.proof_jwt as string) || '',
           verifiedAt: s.created_at as string,
           category: (s.category as string) || 'Language',
@@ -99,19 +100,34 @@ export default function RecentSkillDetections() {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-border/50 hover:border-border-bright hover:bg-white/[0.04] transition-all duration-150 group"
+              className="flex flex-col gap-2 p-3 rounded-xl bg-white/[0.02] border border-border/50 hover:border-border-bright hover:bg-white/[0.04] transition-all duration-150 group"
             >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-semibold text-foreground truncate">{skill.skillName}</span>
-                  <TierBadge tier={skill.proficiency} />
+              <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-semibold text-foreground truncate">{skill.skillName}</span>
+                    <TierBadge tier={skill.proficiency} />
+                  </div>
+                  <ProofHashDisplay hash={skill.proofHash} />
                 </div>
-                <ProofHashDisplay hash={skill.proofHash} />
+                <div className="text-right flex-shrink-0">
+                  <div className="flex items-center justify-end gap-1 mb-1">
+                    <span className={`w-1.5 h-1.5 rounded-full ${skill.verificationTier === 'Strong' ? 'bg-green-400' : skill.verificationTier === 'Moderate' ? 'bg-yellow-400' : 'bg-red-400'}`} />
+                    <p className="text-[11px] font-bold font-mono text-foreground uppercase">{skill.verificationTier}</p>
+                  </div>
+                  <p className="text-[10px] font-mono text-muted-foreground">{formatDateShort(skill.verifiedAt)}</p>
+                </div>
               </div>
-              <div className="text-right flex-shrink-0">
-                <p className="text-xs font-bold font-mono text-accent">{skill.confidence.toFixed(1)}%</p>
-                <p className="text-[10px] font-mono text-muted-foreground">{formatDateShort(skill.verifiedAt)}</p>
-              </div>
+              
+              {/* Evidence Log */}
+              {skill.evidenceLog?.reason && (
+                <div className="mt-1 p-2 rounded-lg bg-black/20 border border-border/30">
+                  <p className="text-[10px] font-mono text-muted-foreground leading-relaxed">
+                    <span className="text-accent mr-1">Evidence:</span> 
+                    {skill.evidenceLog.reason}
+                  </p>
+                </div>
+              )}
             </motion.div>
           ))
         )}

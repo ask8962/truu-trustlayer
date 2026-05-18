@@ -130,28 +130,28 @@ Your job is to protect the credibility of the platform. You must ruthlessly scru
 - Recent Push Events: ${githubData.pushEventsCount} in the last 90 days
 
 **CRITICAL RULES:**
-1. If the developer has fewer than 2 OWNED repositories OR fewer than 5 recent push events, data is too weak. You MUST return exactly: {"error": "Your GitHub profile doesn't have enough activity yet. TRUU needs at least 2 original repositories and recent commits to verify your skills. Start building and come back — we'll be here."}
+1. If the developer has fewer than 2 OWNED repositories OR fewer than 5 recent push events, data is too weak. You MUST return exactly: {"error": "Verification Failed: Insufficient authored commits or original repositories. TRUU requires a minimum baseline of engineering activity."}
 2. Read the Top Repository README Snippets carefully. Use them to judge system design capability, documentation quality, and true project complexity. Do NOT infer expertise from simple byte counts alone.
-3. If the profile is mostly forks (${githubData.forkedReposCount} forks vs ${githubData.ownedReposCount} owned), heavily penalize all confidence scores.
+3. If the profile is mostly forks (${githubData.forkedReposCount} forks vs ${githubData.ownedReposCount} owned), explicitly fail verification for advanced skills.
 4. "Master" or "Expert" proficiency requires complex projects documented in READMEs, multiple owned repos, stars, and high recent activity.
-5. High confidence (>80%) requires owned repositories with stars and consistent recent push events.
-6. Return a JSON object with "summary" and "skills" keys, OR the error object.
-7. Each skill must have: "skillName", "proficiency", "confidence", "category"
-8. proficiency MUST be one of: "Novice", "Practitioner", "Expert", "Master"
-9. confidence is a number 0-100 representing empirical proof.
+5. Return a JSON object with "summary" and "skills", OR the error object.
+6. Each skill must have: "skillName", "proficiency", "verificationTier", "evidence", "category"
+7. proficiency MUST be one of: "Novice", "Practitioner", "Expert", "Master"
+8. verificationTier MUST be one of: "Strong", "Moderate", "Weak". (Use Strong only if backed by READMEs and high commit volume).
+9. evidence MUST be a clear, 1-sentence explanation of WHY this skill was verified (e.g., "Detected in 45 commits across 2 owned repositories including usage of Context API").
 10. category MUST be one of: "Language", "Framework", "Architecture", "Database", "DevOps", "Runtime", "API"
-11. Return 3-10 skills maximum.
+11. Return 3-10 skills maximum. Cut out the weak ones.
 12. Return ONLY valid JSON, no markdown formatting, no explanations.
 
 **Example Error Output:**
-{"error": "Your GitHub profile doesn't have enough activity yet. TRUU needs at least 2 original repositories and recent commits to verify your skills. Start building and come back — we'll be here."}
+{"error": "Verification Failed: Insufficient authored commits or original repositories. TRUU requires a minimum baseline of engineering activity."}
 
 **Example Success Output:**
 {
   "summary": "This developer actively contributes to high-complexity React projects...",
   "skills": [
-    {"skillName": "JavaScript", "proficiency": "Expert", "confidence": 85.5, "category": "Language"},
-    {"skillName": "React", "proficiency": "Practitioner", "confidence": 65.0, "category": "Framework"}
+    {"skillName": "JavaScript", "proficiency": "Expert", "verificationTier": "Strong", "evidence": "Primary language in 3 owned repositories with over 150 recent commits.", "category": "Language"},
+    {"skillName": "React", "proficiency": "Practitioner", "verificationTier": "Moderate", "evidence": "Detected via dependency trees in 2 active projects.", "category": "Framework"}
   ]
 }`;
 
@@ -217,14 +217,15 @@ export async function POST(request: Request) {
 
     // 3. Save skills
     const skillRows = skills.map(
-      (skill: { skillName: string; proficiency: string; confidence: number; category: string }) => ({
+      (skill: { skillName: string; proficiency: string; verificationTier: string; evidence: string; category: string }) => ({
         user_id,
         skill_name: skill.skillName,
         proficiency_level: skill.proficiency,
-        confidence: skill.confidence,
+        verification_tier: skill.verificationTier,
+        evidence_log: { reason: skill.evidence },
         category: skill.category,
         proof_jwt: `truu_${Buffer.from(
-          JSON.stringify({ skill: skill.skillName, prof: skill.proficiency, conf: skill.confidence, user: github_username, ts: Date.now() })
+          JSON.stringify({ skill: skill.skillName, prof: skill.proficiency, tier: skill.verificationTier, user: github_username, ts: Date.now() })
         ).toString('base64')}`,
       })
     );
@@ -244,8 +245,9 @@ export async function POST(request: Request) {
       
       trustScore = Math.min(1000, Math.round(
         baseScore + skills.reduce((acc: number, s: any) => {
-          const m = s.proficiency === 'Master' ? 4 : s.proficiency === 'Expert' ? 3 : s.proficiency === 'Practitioner' ? 2 : 1;
-          return acc + s.confidence * m * 0.6;
+          const m = s.proficiency === 'Master' ? 40 : s.proficiency === 'Expert' ? 30 : s.proficiency === 'Practitioner' ? 20 : 10;
+          const t = s.verificationTier === 'Strong' ? 1.0 : s.verificationTier === 'Moderate' ? 0.7 : s.verificationTier === 'Weak' ? 0.3 : 0.5;
+          return acc + t * m * 1.5;
         }, 0)
       ));
     }
